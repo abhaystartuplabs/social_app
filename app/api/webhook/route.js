@@ -4,7 +4,7 @@ export async function GET(req) {
   const token = searchParams.get("hub.verify_token");
   const challenge = searchParams.get("hub.challenge");
 
-  const VERIFY_TOKEN = "IGAAMOQ8i2B2JBZAFFBV0RGRUxIdFptUmhLeng0ZAmRfS1BPcUdQQWVGOUlyNWM0TDM0UWdZAM0NxYXpCZA1JGUXlPaGljblNwUzhYZA0lORXU1UlR4RXZAuVC1CTS1RZAWsyUEFVU2MySmtnc3dYRVEwcW9mWFhlSW9RQ0poLW8ydmV4WQZDZD"; // same token you set in Meta Dashboard
+  const VERIFY_TOKEN = "GAAMOQ8i2B2JBZAFE2Q2NKZAW9XeUpnX19CVWxZAYUxWdTVDTnczblRfRk5wU2ROS0djT00zLTFrRWQtZA0RrZAF9QMjlNSi1jVV82NGY0YjJhWWY3cE44THNsd1ItSmdHbDlJZAi1aLUxZAeEQtVjFFd2FDM0xISWdOZA3lLa0R2cG5WNAZDZD"; // same token you set in Meta Dashboard
 
   if (mode === "subscribe" && token === VERIFY_TOKEN) {
     console.log("Webhook verified!");

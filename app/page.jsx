@@ -1,34 +1,17 @@
 "use client";
+import { LoginButton } from "./login/page";
 
-import { signIn, signOut, useSession } from "next-auth/react";
+// NOTE: This file assumes you have created the components/LoginButton.tsx file
+// and set up the /api/auth/[...nextauth]/route.ts handler as described in the guide.
 
 export default function Home() {
-  const { data: session } = useSession();
-
   return (
-    <div className="flex flex-col items-center justify-center h-screen bg-gray-50">
-      {!session ? (
-        <>
-          <h1 className="text-2xl text-black font-bold mb-4">Login with Instagram</h1>
-          <button
-            onClick={() => signIn("instagram")}
-            className="bg-pink-500 text-white px-4 py-2 rounded-lg hover:bg-pink-600"
-          >
-            Login with Instagram
-          </button>
-        </>
-      ) : (
-        <>
-          <h1 className="text-xl font-bold mb-4">Welcome, {session.user.name || "User"}</h1>
-          <p>Access Token: {session.accessToken}</p>
-          <button
-            onClick={() => signOut()}
-            className="bg-gray-800 text-white px-4 py-2 mt-4 rounded-lg"
-          >
-            Logout
-          </button>
-        </>
-      )}
-    </div>
+    // SessionProvider is necessary to use useSession() hook in client components
+    // We are using a mock provider here because the actual provider setup 
+    // is usually done in a separate file (like context/Provider.tsx), but 
+    // for this single-file example, we put it here.
+      <main className="flex min-h-screen flex-col items-center justify-center p-24 bg-gray-50">
+        <LoginButton />
+      </main>
   );
 }
