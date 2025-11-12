@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { signIn, signOut, useSession } from "next-auth/react";
 import axios from "axios";
 
 export default function Dashboard() {
@@ -8,10 +9,11 @@ export default function Dashboard() {
   const [caption, setCaption] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [loading, setLoading] = useState(false);
+    const { data: session, status } = useSession();
 
   // ✅ Replace with your actual values or load from session
   const accessToken =
-    "YOUR_LONG_LIVED_ACCESS_TOKEN"; // From your working flow
+    session.accessToken; // From your working flow
   const instagramBusinessId = "17841478332379447"; // From your connected account
 
   // 👉 Fetch Account Details
