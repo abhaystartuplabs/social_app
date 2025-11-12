@@ -12,6 +12,7 @@ export default function InstagramDMs() {
   const [messages, setMessages] = useState([]);
   const [dmReply, setDmReply] = useState("");
   const [error, setError] = useState(null);
+  const [permissions, setPermissions] = useState([]);
   const messagesEndRef = useRef(null);
 
   const accessToken = session?.accessToken;
@@ -20,34 +21,41 @@ export default function InstagramDMs() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // Fetch connected Instagram Business account
+  // Fetch permissions and IG Business account
   useEffect(() => {
     if (!accessToken || status !== "authenticated") return;
 
-    const fetchIGBusinessId = async () => {
+    const fetchIGBusinessAndPermissions = async () => {
       try {
+        // 1️⃣ Fetch user permissions
+        const permRes = await axios.get(
+          `https://graph.facebook.com/v21.0/me/permissions`,
+          { params: { access_token: accessToken } }
+        );
+        setPermissions(permRes.data.data || []);
+
+        // 2️⃣ Fetch connected Facebook Pages
         const pagesRes = await axios.get("https://graph.facebook.com/v21.0/me/accounts", {
           params: { access_token: accessToken },
         });
-
         const page = pagesRes.data.data?.[0];
         if (!page) throw new Error("No connected Facebook Page found.");
 
+        // 3️⃣ Get linked Instagram Business Account
         const igRes = await axios.get(`https://graph.facebook.com/v21.0/${page.id}`, {
           params: { fields: "instagram_business_account", access_token: accessToken },
         });
-
         const igId = igRes.data.instagram_business_account?.id;
         if (!igId) throw new Error("No linked Instagram Business Account found.");
 
         setInstagramBusinessId(igId);
       } catch (err) {
-        console.error("Error fetching IG business account:", err.response?.data || err);
-        setError("Failed to fetch Instagram Business Account.");
+        console.error("Error fetching IG business account or permissions:", err.response?.data || err);
+        setError(err.response?.data?.error?.message || "Failed to fetch data.");
       }
     };
 
-    fetchIGBusinessId();
+    fetchIGBusinessAndPermissions();
   }, [accessToken, status]);
 
   // Fetch DM conversations
@@ -56,12 +64,14 @@ export default function InstagramDMs() {
     try {
       const res = await axios.get(
         `https://graph.facebook.com/v21.0/${instagramBusinessId}/conversations`,
-        { params: { access_token: accessToken } }
+        {
+          params: { access_token: accessToken, fields: "id,participants,snippet" },
+        }
       );
       setConversations(res.data.data || []);
     } catch (err) {
       console.error("Error fetching conversations:", err.response?.data || err);
-      setError("Failed to fetch conversations.");
+      setError(err.response?.data?.error?.message || "Failed to fetch conversations.");
     }
   };
 
@@ -70,14 +80,16 @@ export default function InstagramDMs() {
     try {
       const res = await axios.get(
         `https://graph.facebook.com/v21.0/${conversationId}/messages`,
-        { params: { access_token: accessToken } }
+        {
+          params: { access_token: accessToken, fields: "id,text,from,timestamp" },
+        }
       );
       setMessages(res.data.data || []);
       setSelectedConversation(conversationId);
       setTimeout(scrollToBottom, 100);
     } catch (err) {
       console.error("Error fetching messages:", err.response?.data || err);
-      setError("Failed to fetch messages.");
+      setError(err.response?.data?.error?.message || "Failed to fetch messages.");
     }
   };
 
@@ -94,7 +106,7 @@ export default function InstagramDMs() {
       fetchMessages(selectedConversation); // Refresh messages
     } catch (err) {
       console.error("Error sending message:", err.response?.data || err);
-      alert("Failed to send message.");
+      alert(err.response?.data?.error?.message || "Failed to send message.");
     }
   };
 
@@ -116,6 +128,20 @@ export default function InstagramDMs() {
         <h1 className="text-3xl font-bold mb-6">Instagram DMs</h1>
 
         {error && <p className="text-red-500 mb-4">{error}</p>}
+
+        {/* Show user permissions */}
+        {permissions.length > 0 && (
+          <div className="mb-6 p-4 bg-yellow-100 rounded-xl shadow">
+            <h2 className="font-semibold mb-2">Your Token Permissions:</h2>
+            <ul className="list-disc list-inside">
+              {permissions.map((p) => (
+                <li key={p.permission}>
+                  {p.permission} — {p.status}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <button
           onClick={fetchConversations}
