@@ -121,23 +121,33 @@ export default function PageDMs() {
     if (!selectedConversation || !fbPage) return;
 
     try {
-      console.log("Sending message:", dmReply);
-      await axios.post(
-        `https://graph.facebook.com/v21.0/${selectedConversation}/messages`,
-        { message: dmReply },
-        {
-          headers: { "Content-Type": "application/json" },
-          params: { access_token: fbPage.access_token },
-        }
-      );
-      console.log("Message sent successfully!");
-      setDmReply("");
-      fetchMessages(selectedConversation);
+        // Get recipient id (the user, not the page)
+        const recipientId = messages.find(m => m.from.id !== fbPage.id)?.from.id;
+        if (!recipientId) return alert("Cannot find recipient ID");
+
+        console.log("Sending message to recipient:", recipientId, dmReply);
+
+        await axios.post(
+            `https://graph.facebook.com/v21.0/me/messages`,
+            {
+                recipient: { id: recipientId },
+                message: { text: dmReply }
+            },
+            {
+                headers: { "Content-Type": "application/json" },
+                params: { access_token: fbPage.access_token },
+            }
+        );
+
+        console.log("Message sent successfully!");
+        setDmReply("");
+        fetchMessages(selectedConversation);
     } catch (err) {
-      console.error("Error sending message:", err.response?.data || err);
-      alert("Failed to send message. Make sure you use a Page token and proper conversation ID.");
+        console.error("Error sending message:", err.response?.data || err);
+        alert("Failed to send message. Make sure you use a Page token and recipient ID.");
     }
-  };
+};
+
 
   if (status === "loading") return <p className="text-center mt-10">Loading session...</p>;
   if (!session)
