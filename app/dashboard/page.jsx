@@ -19,7 +19,7 @@ export default function Dashboard() {
 
   const accessToken = session?.accessToken;
 
-  // 🔹 1️⃣ Fetch connected Instagram Business account
+  // 1️⃣ Fetch connected Instagram Business account
   useEffect(() => {
     if (!accessToken || status !== "authenticated") return;
 
@@ -29,8 +29,6 @@ export default function Dashboard() {
           "https://graph.facebook.com/v21.0/me/accounts",
           { params: { access_token: accessToken } }
         );
-
-        console.log("Account res-1:-",pagesRes)
 
         const page = pagesRes.data.data?.[0];
         if (!page) throw new Error("No connected Facebook Page found.");
@@ -45,10 +43,7 @@ export default function Dashboard() {
           }
         );
 
-        console.log("igRes:-",igRes)
-
         const igId = igRes.data.instagram_business_account?.id;
-        console.log("igId:-",igId)
         if (!igId) throw new Error("No linked Instagram Business Account found.");
 
         setInstagramBusinessId(igId);
@@ -61,7 +56,7 @@ export default function Dashboard() {
     fetchAccount();
   }, [accessToken, status]);
 
-  // 🔹 2️⃣ Fetch Instagram account info & media
+  // 2️⃣ Fetch Instagram account info & media
   useEffect(() => {
     if (!instagramBusinessId || !accessToken) return;
 
@@ -77,13 +72,13 @@ export default function Dashboard() {
           }),
           axios.get(`https://graph.facebook.com/v21.0/${instagramBusinessId}/media`, {
             params: {
-              fields: "id,caption,media_url,permalink,like_count,comments_count",
+              fields:
+                "id,caption,media_url,permalink,like_count,comments_count,media_type,thumbnail_url",
               access_token: accessToken,
             },
           }),
         ]);
-console.log("accountRes-2:-",accountRes)
-console.log("mediaRes:-",mediaRes)
+
         setAccount(accountRes.data);
         setMedia(mediaRes.data.data || []);
       } catch (err) {
@@ -95,7 +90,7 @@ console.log("mediaRes:-",mediaRes)
     fetchData();
   }, [instagramBusinessId, accessToken]);
 
-  // 🔹 3️⃣ Fetch comments for selected post
+  // 3️⃣ Fetch comments for a post
   const fetchComments = async (postId) => {
     try {
       setSelectedPost(postId);
@@ -108,17 +103,15 @@ console.log("mediaRes:-",mediaRes)
           },
         }
       );
-      console.log("res comment:-",res)
       setComments(res.data.data || []);
     } catch (err) {
       console.error("Error fetching comments:", err.response?.data || err);
     }
   };
 
-  // 🔹 4️⃣ Reply to a comment
+  // 4️⃣ Reply to a comment
   const postReply = async (commentId) => {
     if (!reply) return alert("Reply cannot be empty");
-    console.log("commentId:-",commentId)
     try {
       await axios.post(
         `https://graph.facebook.com/v21.0/${commentId}/replies`,
@@ -131,20 +124,18 @@ console.log("mediaRes:-",mediaRes)
         }
       );
       setReply("");
-      alert("✅ Reply posted successfully!");
-      console.log("selectedPost:-",selectedPost)
+      alert("✅ Reply posted!");
       fetchComments(selectedPost);
     } catch (err) {
       console.error("Error replying to comment:", err.response?.data || err);
-      alert("❌ Failed to reply.");
+      alert("❌ Failed to reply. Check permissions for comments_manage and pages_manage_metadata.");
     }
   };
 
-  // 🔹 5️⃣ Delete post
+  // 5️⃣ Delete post
   const deletePost = async (postId) => {
     if (!confirm("Are you sure you want to delete this post?")) return;
-    console.log("postId:-",postId)
-    console.log("media:-",media)
+
     try {
       await axios.delete(`https://graph.facebook.com/v21.0/${postId}`, {
         params: { access_token: accessToken },
@@ -153,11 +144,11 @@ console.log("mediaRes:-",mediaRes)
       setMedia(media.filter((m) => m.id !== postId));
     } catch (err) {
       console.error("Error deleting post:", err.response?.data || err);
-      alert("❌ Failed to delete post.");
+      alert("❌ Failed to delete post. You need `instagram_basic` and `pages_manage_posts` permissions.");
     }
   };
 
-  // 🔹 6️⃣ Fetch post insights
+  // 6️⃣ Fetch post insights
   const fetchInsights = async (postId) => {
     try {
       const res = await axios.get(
@@ -169,23 +160,25 @@ console.log("mediaRes:-",mediaRes)
           },
         }
       );
-      console.log("Insights:", res.data);
-      alert(
-        res.data.data
+      if (res.data?.data?.length > 0) {
+        const insightsMsg = res.data.data
           .map((m) => `${m.title}: ${m.values?.[0]?.value}`)
-          .join("\n") || "No insights found"
-      );
+          .join("\n");
+        alert(insightsMsg);
+      } else {
+        alert("No insights found for this post.");
+      }
     } catch (err) {
       console.error("Error fetching insights:", err.response?.data || err);
-      alert("❌ Failed to fetch insights.");
+      alert("❌ Failed to fetch insights. Ensure you have `instagram_basic` and `instagram_manage_insights` permissions.");
     }
   };
 
-  // 🔹 7️⃣ Create new post
+  // 7️⃣ Create new post
   const createPost = async () => {
     if (!imageUrl) return alert("Please enter an image URL");
     setLoading(true);
-    console.log("imageUrl:-",imageUrl)
+
     try {
       const creationRes = await axios.post(
         `https://graph.facebook.com/v21.0/${instagramBusinessId}/media`,
@@ -212,25 +205,27 @@ console.log("mediaRes:-",mediaRes)
       setImageUrl("");
     } catch (err) {
       console.error("Error posting:", err.response?.data || err);
-      alert("❌ Failed to publish post.");
+      alert("❌ Failed to publish post. Make sure image URL is valid and in JPEG/PNG format.");
     } finally {
       setLoading(false);
     }
   };
 
   if (status === "loading") return <p>Loading session...</p>;
-
   if (!session)
     return (
       <p className="text-center mt-10">
-        Please <a href="/" className="text-blue-600 underline">log in</a> first.
+        Please{" "}
+        <a href="/" className="text-blue-600 underline">
+          log in
+        </a>{" "}
+        first.
       </p>
     );
 
   return (
     <main className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold">Instagram Business Dashboard</h1>
           <button
@@ -241,7 +236,6 @@ console.log("mediaRes:-",mediaRes)
           </button>
         </div>
 
-        {/* Account Info */}
         {account && (
           <div className="bg-white p-6 rounded-xl shadow flex items-center space-x-6 mb-8">
             <img
@@ -293,7 +287,7 @@ console.log("mediaRes:-",mediaRes)
               className="bg-white rounded-xl shadow-md p-3 hover:shadow-lg transition"
             >
               <img
-                src={item.media_url}
+                src={item.media_type === "VIDEO" ? item.thumbnail_url : item.media_url}
                 className="rounded-lg mb-3 w-full object-cover"
               />
               <p className="text-sm mb-2">{item.caption || "No caption"}</p>
@@ -306,7 +300,7 @@ console.log("mediaRes:-",mediaRes)
                   onClick={() => fetchComments(item.id)}
                   className="text-blue-600 text-sm"
                 >
-                  View Comments
+                  Comments
                 </button>
                 <button
                   onClick={() => fetchInsights(item.id)}
