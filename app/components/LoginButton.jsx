@@ -58,19 +58,19 @@ export function LoginButton() {
   return (
     <div className="flex flex-col items-center p-6 bg-white rounded-xl shadow-lg border border-gray-100 w-full max-w-md">
       <h1 className="text-2xl font-bold mb-4 text-gray-800">
-        Login to Instagram
+        Login with Facebook Page
       </h1>
       <button
-        onClick={() => signIn("facebook")} // If using Meta login
-        className="flex items-center justify-center space-x-2 w-full px-6 py-3 text-white bg-pink-600 rounded-xl hover:bg-pink-700 transition duration-300 shadow-xl transform hover:scale-[1.02] active:scale-[0.98]"
+        onClick={() => signIn("facebook")} // Login with Facebook
+        className="flex items-center justify-center space-x-2 w-full px-6 py-3 text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition duration-300 shadow-xl transform hover:scale-[1.02] active:scale-[0.98]"
       >
         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M7.8 2h8.4C19.4 2 22 4.6 22 7.8v8.4c0 3.2-2.6 5.8-5.8 5.8H7.8C4.6 22 2 19.4 2 16.2V7.8C2 4.6 4.6 2 7.8 2zm-.2 2.7l-.3.2c-1.8 1.4-2.8 3.5-2.8 5.7v8c0 2 1.6 3.6 3.6 3.6h8c2 0 3.6-1.6 3.6-3.6V10.7c0-2.2-1-4.3-2.8-5.7l-.3-.2C17 4.1 16 4 14.2 4H9.8c-1.8 0-2.8.1-3.2.7zM12 7.7a4.3 4.3 0 100 8.6 4.3 4.3 0 000-8.6zm0 1.6a2.7 2.7 0 110 5.4 2.7 2.7 0 010-5.4zM18.8 4.6a1 1 0 100 2 1 1 0 000-2z"/>
+          <path d="M22 12c0-5.522-4.477-10-10-10S2 6.478 2 12c0 4.991 3.657 9.128 8.438 9.879v-6.987h-2.54v-2.892h2.54V9.845c0-2.507 1.492-3.89 3.777-3.89 1.094 0 2.238.196 2.238.196v2.465h-1.26c-1.242 0-1.63.771-1.63 1.562v1.875h2.773l-.443 2.892h-2.33v6.987C18.343 21.128 22 16.991 22 12z" />
         </svg>
-        <span className="font-medium">Sign in with Instagram</span>
+        <span className="font-medium">Sign in with Facebook</span>
       </button>
       <p className="mt-4 text-xs text-gray-500">
-        Requires configuration in the Meta Developer Dashboard.
+        Requires a Facebook Page and Meta Developer App configuration.
       </p>
     </div>
   );
