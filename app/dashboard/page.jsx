@@ -471,22 +471,25 @@ export default function Dashboard() {
   }, [instagramBusinessId, accessToken]);
 
   // Fetch comments
-  const fetchComments = async (postId) => {
-    try {
-      const res = await axios.get(`https://graph.facebook.com/v21.0/${postId}/comments`, {
-        params: {
-          fields: "id,text,username,timestamp",
-          access_token: accessToken,
-        },
-      });
-      setComments(res.data.data || []);
-      setModalPost(postId);
-      setModalType("comments");
-    } catch (err) {
-      console.error("Error fetching comments:", err.response?.data || err);
-      setComments([]);
-    }
-  };
+ // Fetch comments including replies
+const fetchComments = async (postId) => {
+  try {
+    const res = await axios.get(`https://graph.facebook.com/v21.0/${postId}/comments`, {
+      params: {
+        fields: "id,text,username,timestamp,replies{id,text,username,timestamp}",
+        access_token: accessToken,
+      },
+    });
+
+    setComments(res.data.data || []);
+    setModalPost(postId);
+    setModalType("comments");
+  } catch (err) {
+    console.error("Error fetching comments:", err.response?.data || err);
+    setComments([]);
+  }
+};
+
 
   // Reply to comment
   const postReply = async (commentId) => {
@@ -675,27 +678,33 @@ export default function Dashboard() {
                   ) : (
                     <div className="space-y-4">
                       {comments.map((c) => (
-                        <div key={c.id} className="flex space-x-4 p-3 bg-gray-50 rounded-xl shadow-sm">
-                          <div className="flex-shrink-0">
-                            <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-white font-bold">
-                              {c.username?.[0]?.toUpperCase() || "U"}
-                            </div>
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex justify-between items-center mb-1">
-                              <p className="font-semibold">{c.username || "Anonymous"}</p>
-                              <p className="text-xs text-gray-400">{timeAgo(c.timestamp)}</p>
-                            </div>
-                            <p className="text-gray-700 mb-2">{c.text}</p>
-                            <button
-                              onClick={() => postReply(c.id)}
-                              className="text-blue-600 text-sm hover:underline"
-                            >
-                              Reply
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+  <div key={c.id} className="flex flex-col space-y-2 p-3 bg-gray-50 rounded-xl shadow-sm">
+    <div className="flex justify-between items-center">
+      <p className="font-semibold">{c.username || "Anonymous"}</p>
+      <p className="text-xs text-gray-400">{timeAgo(c.timestamp)}</p>
+    </div>
+    <p className="text-gray-700">{c.text}</p>
+    <div className="flex space-x-2">
+      <button onClick={() => postReply(c.id)} className="text-blue-600 text-sm hover:underline">Reply</button>
+    </div>
+
+    {/* Nested replies */}
+    {c.replies?.data?.length > 0 && (
+      <div className="ml-6 mt-2 space-y-2">
+        {c.replies.data.map((r) => (
+          <div key={r.id} className="bg-gray-100 p-2 rounded-lg">
+            <div className="flex justify-between items-center">
+              <p className="font-semibold">{r.username || "Anonymous"}</p>
+              <p className="text-xs text-gray-400">{timeAgo(r.timestamp)}</p>
+            </div>
+            <p className="text-gray-700">{r.text}</p>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+))}
+
                     </div>
                   )}
                   <div className="mt-4">
