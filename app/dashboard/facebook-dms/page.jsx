@@ -35,8 +35,7 @@ export default function PageDMs() {
         console.log("Pages data:", res.data);
 
         if (!res.data.data?.length) throw new Error("No Facebook Page found.");
-
-        const page = res.data.data[0]; // Pick first page
+        const page = res.data.data[0];
         console.log("Selected FB Page:", page);
         setFbPage(page);
 
@@ -46,7 +45,8 @@ export default function PageDMs() {
         });
         console.log("IG Business data:", igRes.data);
 
-        if (!igRes.data.instagram_business_account) throw new Error("No linked Instagram Business Account.");
+        if (!igRes.data.instagram_business_account)
+          throw new Error("No linked Instagram Business Account.");
         setIgBusinessId(igRes.data.instagram_business_account.id);
       } catch (err) {
         console.error("Error fetching accounts:", err.response?.data || err);
@@ -63,7 +63,10 @@ export default function PageDMs() {
     try {
       console.log("Fetching Facebook Page conversations...");
       const res = await axios.get(`https://graph.facebook.com/v21.0/${fbPage.id}/conversations`, {
-        params: { access_token: fbPage.access_token },
+        params: {
+          access_token: fbPage.access_token,
+          fields: "id,senders{name},snippet,updated_time",
+        },
       });
       console.log("FB Conversations:", res.data);
       setFbConversations(res.data.data || []);
@@ -78,7 +81,10 @@ export default function PageDMs() {
     try {
       console.log("Fetching Instagram conversations...");
       const res = await axios.get(`https://graph.facebook.com/v21.0/${igBusinessId}/conversations`, {
-        params: { access_token: fbPage.access_token },
+        params: {
+          access_token: fbPage.access_token,
+          fields: "id,participants{username},snippet,updated_time",
+        },
       });
       console.log("IG Conversations:", res.data);
       setIgConversations(res.data.data || []);
@@ -89,13 +95,15 @@ export default function PageDMs() {
   };
 
   // Fetch messages
-  const fetchMessages = async (conversationId, isFB = true) => {
+  const fetchMessages = async (conversationId) => {
     if (!fbPage) return;
     try {
       console.log(`Fetching messages for conversation ${conversationId}...`);
-      const token = fbPage.access_token;
       const res = await axios.get(`https://graph.facebook.com/v21.0/${conversationId}/messages`, {
-        params: { access_token: token },
+        params: {
+          access_token: fbPage.access_token,
+          fields: "id,message,from{name,id},to{name,id},created_time",
+        },
       });
       console.log("Messages data:", res.data);
       setMessages(res.data.data || []);
@@ -116,12 +124,10 @@ export default function PageDMs() {
       console.log("Sending message:", dmReply);
       await axios.post(
         `https://graph.facebook.com/v21.0/${selectedConversation}/messages`,
-        null,
+        { message: dmReply },
         {
-          params: {
-            message: dmReply,
-            access_token: fbPage.access_token,
-          },
+          headers: { "Content-Type": "application/json" },
+          params: { access_token: fbPage.access_token },
         }
       );
       console.log("Message sent successfully!");
@@ -129,7 +135,7 @@ export default function PageDMs() {
       fetchMessages(selectedConversation);
     } catch (err) {
       console.error("Error sending message:", err.response?.data || err);
-      alert("Failed to send message. Make sure you use a Page token.");
+      alert("Failed to send message. Make sure you use a Page token and proper conversation ID.");
     }
   };
 
@@ -165,9 +171,8 @@ export default function PageDMs() {
                   <div
                     key={c.id}
                     onClick={() => fetchMessages(c.id)}
-                    className={`cursor-pointer p-3 border rounded hover:bg-gray-50 ${
-                      selectedConversation === c.id ? "border-blue-500 bg-blue-50" : ""
-                    }`}
+                    className={`cursor-pointer p-3 border rounded hover:bg-gray-50 ${selectedConversation === c.id ? "border-blue-500 bg-blue-50" : ""
+                      }`}
                   >
                     <p className="font-semibold">{c.senders?.data[0]?.name || "Unknown"}</p>
                     <p className="text-gray-500 text-sm">{c.snippet || "No recent message"}</p>
@@ -182,10 +187,9 @@ export default function PageDMs() {
                 {igConversations.map((c) => (
                   <div
                     key={c.id}
-                    onClick={() => fetchMessages(c.id, false)}
-                    className={`cursor-pointer p-3 border rounded hover:bg-gray-50 ${
-                      selectedConversation === c.id ? "border-purple-500 bg-purple-50" : ""
-                    }`}
+                    onClick={() => fetchMessages(c.id)}
+                    className={`cursor-pointer p-3 border rounded hover:bg-gray-50 ${selectedConversation === c.id ? "border-purple-500 bg-purple-50" : ""
+                      }`}
                   >
                     <p className="font-semibold">{c.participants?.data[0]?.username || "Unknown"}</p>
                     <p className="text-gray-500 text-sm">{c.snippet || "No recent message"}</p>
@@ -206,14 +210,14 @@ export default function PageDMs() {
                   messages.map((m) => (
                     <div
                       key={m.id}
-                      className={`p-3 rounded-xl max-w-[80%] break-words ${
-                        m.from?.id === fbPage?.id || m.from?.id === igBusinessId
-                          ? "bg-blue-100 self-end text-right"
-                          : "bg-gray-100 self-start"
-                      }`}
+                      className={`p-3 rounded-xl max-w-[80%] break-words ${m.from?.id === fbPage?.id || m.from?.id === igBusinessId
+                        ? "bg-blue-100 self-end text-right"
+                        : "bg-gray-100 self-start"
+                        }`}
                     >
-                      <p className="text-sm">{m.message || m.text || JSON.stringify(m)}</p>
-                      <p className="text-xs text-gray-400 mt-1">{new Date(m.created_time || m.timestamp).toLocaleString()}</p>
+                      <p className="text-sm">{m.message}</p>
+                      <p className="text-xs text-gray-400 mt-1">{new Date(m.created_time).toLocaleString()}</p>
+                      <p className="text-xs text-gray-500 mt-1">From: {m.from?.name}</p>
                     </div>
                   ))
                 )}
