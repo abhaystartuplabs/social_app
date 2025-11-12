@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSession } from "next-auth/react";
 import axios from "axios";
 
@@ -12,8 +12,13 @@ export default function InstagramDMs() {
   const [messages, setMessages] = useState([]);
   const [dmReply, setDmReply] = useState("");
   const [error, setError] = useState(null);
+  const messagesEndRef = useRef(null);
 
   const accessToken = session?.accessToken;
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
   // Fetch connected Instagram Business account
   useEffect(() => {
@@ -69,6 +74,7 @@ export default function InstagramDMs() {
       );
       setMessages(res.data.data || []);
       setSelectedConversation(conversationId);
+      setTimeout(scrollToBottom, 100);
     } catch (err) {
       console.error("Error fetching messages:", err.response?.data || err);
       setError("Failed to fetch messages.");
@@ -77,7 +83,7 @@ export default function InstagramDMs() {
 
   // Send a reply
   const sendMessage = async () => {
-    if (!dmReply) return alert("Message cannot be empty");
+    if (!dmReply.trim()) return alert("Message cannot be empty");
     try {
       await axios.post(
         `https://graph.facebook.com/v21.0/${selectedConversation}/messages`,
@@ -106,7 +112,7 @@ export default function InstagramDMs() {
 
   return (
     <main className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         <h1 className="text-3xl font-bold mb-6">Instagram DMs</h1>
 
         {error && <p className="text-red-500 mb-4">{error}</p>}
@@ -129,7 +135,9 @@ export default function InstagramDMs() {
                 <div
                   key={c.id}
                   onClick={() => fetchMessages(c.id)}
-                  className="cursor-pointer p-3 border rounded hover:bg-gray-50"
+                  className={`cursor-pointer p-3 border rounded hover:bg-gray-50 ${
+                    selectedConversation === c.id ? "border-blue-500 bg-blue-50" : ""
+                  }`}
                 >
                   <p className="font-semibold">{c.participants?.data[0]?.username || "Unknown"}</p>
                   <p className="text-gray-500 text-sm">{c.snippet || "No recent message"}</p>
@@ -140,17 +148,19 @@ export default function InstagramDMs() {
 
           {/* Messages */}
           {selectedConversation && (
-            <div className="bg-white p-4 rounded-xl shadow flex flex-col space-y-4 max-h-[70vh] overflow-y-auto">
-              <h2 className="text-xl font-semibold">Messages</h2>
-              <div className="space-y-2 flex-1 overflow-y-auto">
+            <div className="bg-white p-4 rounded-xl shadow flex flex-col max-h-[70vh]">
+              <h2 className="text-xl font-semibold mb-4">Messages</h2>
+              <div className="flex-1 overflow-y-auto space-y-2">
                 {messages.length === 0 ? (
                   <p className="text-gray-500">No messages in this conversation.</p>
                 ) : (
                   messages.map((m) => (
                     <div
                       key={m.id}
-                      className={`p-3 rounded-xl ${
-                        m.from?.id === instagramBusinessId ? "bg-blue-100 self-end" : "bg-gray-100 self-start"
+                      className={`p-3 rounded-xl max-w-[80%] break-words ${
+                        m.from?.id === instagramBusinessId
+                          ? "bg-blue-100 self-end text-right"
+                          : "bg-gray-100 self-start"
                       }`}
                     >
                       <p className="text-sm">{m.text}</p>
@@ -158,6 +168,7 @@ export default function InstagramDMs() {
                     </div>
                   ))
                 )}
+                <div ref={messagesEndRef} />
               </div>
               <div className="flex space-x-2 mt-2">
                 <input
@@ -166,8 +177,12 @@ export default function InstagramDMs() {
                   value={dmReply}
                   onChange={(e) => setDmReply(e.target.value)}
                   className="flex-1 p-3 border rounded-xl focus:ring-2 focus:ring-blue-400 outline-none"
+                  onKeyDown={(e) => e.key === "Enter" && sendMessage()}
                 />
-                <button onClick={sendMessage} className="bg-blue-600 text-white px-5 py-2 rounded-xl hover:bg-blue-700">
+                <button
+                  onClick={sendMessage}
+                  className="bg-blue-600 text-white px-5 py-2 rounded-xl hover:bg-blue-700"
+                >
                   Send
                 </button>
               </div>

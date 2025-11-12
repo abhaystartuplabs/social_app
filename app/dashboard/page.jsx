@@ -22,6 +22,7 @@ export default function Dashboard() {
     const router = useRouter()
 
     const accessToken = session?.accessToken;
+    console.log("accessToken:-",accessToken)
 
     const timeAgo = (timestamp) => {
         const diff = (new Date() - new Date(timestamp)) / 1000;
