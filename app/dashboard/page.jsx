@@ -134,45 +134,48 @@ export default function Dashboard() {
 
   // 5️⃣ Delete post
   const deletePost = async (postId) => {
-    if (!confirm("Are you sure you want to delete this post?")) return;
+  if (!confirm("Are you sure you want to delete this post?")) return;
 
-    try {
-      await axios.delete(`https://graph.facebook.com/v21.0/${postId}`, {
-        params: { access_token: accessToken },
-      });
-      alert("✅ Post deleted!");
-      setMedia(media.filter((m) => m.id !== postId));
-    } catch (err) {
-      console.error("Error deleting post:", err.response?.data || err);
-      alert("❌ Failed to delete post. You need `instagram_basic` and `pages_manage_posts` permissions.");
-    }
-  };
+  try {
+    const res = await axios.delete(
+      `https://graph.facebook.com/v21.0/${postId}`,
+      { params: { access_token: accessToken } }
+    );
+    console.log("Delete response:", res.data);
+    alert("✅ Post deleted!");
+    setMedia(media.filter((m) => m.id !== postId));
+  } catch (err) {
+    console.error("Error deleting post:", err.response?.data || err);
+    alert(`❌ Failed to delete post: ${err.response?.data?.error?.message}`);
+  }
+};
+
 
   // 6️⃣ Fetch post insights
   const fetchInsights = async (postId) => {
-    try {
-      const res = await axios.get(
-        `https://graph.facebook.com/v21.0/${postId}/insights`,
-        {
-          params: {
-            metric: "impressions,reach,engagement,saved",
-            access_token: accessToken,
-          },
-        }
-      );
-      if (res.data?.data?.length > 0) {
-        const insightsMsg = res.data.data
-          .map((m) => `${m.title}: ${m.values?.[0]?.value}`)
-          .join("\n");
-        alert(insightsMsg);
-      } else {
-        alert("No insights found for this post.");
+  try {
+    const res = await axios.get(
+      `https://graph.facebook.com/v21.0/${postId}/insights`,
+      {
+        params: {
+          metric: "impressions,reach,engagement,saved",
+          access_token: accessToken,
+        },
       }
-    } catch (err) {
-      console.error("Error fetching insights:", err.response?.data || err);
-      alert("❌ Failed to fetch insights. Ensure you have `instagram_basic` and `instagram_manage_insights` permissions.");
-    }
-  };
+    );
+
+    console.log("Insights data:", res.data);
+    alert(
+      res.data.data
+        ?.map((m) => `${m.title || m.name}: ${m.values?.[0]?.value}`)
+        .join("\n") || "No insights found"
+    );
+  } catch (err) {
+    console.error("Error fetching insights:", err.response?.data || err);
+    alert(`❌ Failed to fetch insights: ${err.response?.data?.error?.message}`);
+  }
+};
+
 
   // 7️⃣ Create new post
   const createPost = async () => {
