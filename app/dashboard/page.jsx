@@ -30,6 +30,8 @@ export default function Dashboard() {
           { params: { access_token: accessToken } }
         );
 
+        console.log("Account res-1:-",pagesRes)
+
         const page = pagesRes.data.data?.[0];
         if (!page) throw new Error("No connected Facebook Page found.");
 
@@ -43,7 +45,10 @@ export default function Dashboard() {
           }
         );
 
+        console.log("igRes:-",igRes)
+
         const igId = igRes.data.instagram_business_account?.id;
+        console.log("igId:-",igId)
         if (!igId) throw new Error("No linked Instagram Business Account found.");
 
         setInstagramBusinessId(igId);
@@ -77,7 +82,8 @@ export default function Dashboard() {
             },
           }),
         ]);
-
+console.log("accountRes-2:-",accountRes)
+console.log("mediaRes:-",mediaRes)
         setAccount(accountRes.data);
         setMedia(mediaRes.data.data || []);
       } catch (err) {
@@ -102,6 +108,7 @@ export default function Dashboard() {
           },
         }
       );
+      console.log("res comment:-",res)
       setComments(res.data.data || []);
     } catch (err) {
       console.error("Error fetching comments:", err.response?.data || err);
@@ -111,6 +118,7 @@ export default function Dashboard() {
   // 🔹 4️⃣ Reply to a comment
   const postReply = async (commentId) => {
     if (!reply) return alert("Reply cannot be empty");
+    console.log("commentId:-",commentId)
     try {
       await axios.post(
         `https://graph.facebook.com/v21.0/${commentId}/replies`,
@@ -124,6 +132,7 @@ export default function Dashboard() {
       );
       setReply("");
       alert("✅ Reply posted successfully!");
+      console.log("selectedPost:-",selectedPost)
       fetchComments(selectedPost);
     } catch (err) {
       console.error("Error replying to comment:", err.response?.data || err);
@@ -134,6 +143,8 @@ export default function Dashboard() {
   // 🔹 5️⃣ Delete post
   const deletePost = async (postId) => {
     if (!confirm("Are you sure you want to delete this post?")) return;
+    console.log("postId:-",postId)
+    console.log("media:-",media)
     try {
       await axios.delete(`https://graph.facebook.com/v21.0/${postId}`, {
         params: { access_token: accessToken },
@@ -174,6 +185,7 @@ export default function Dashboard() {
   const createPost = async () => {
     if (!imageUrl) return alert("Please enter an image URL");
     setLoading(true);
+    console.log("imageUrl:-",imageUrl)
     try {
       const creationRes = await axios.post(
         `https://graph.facebook.com/v21.0/${instagramBusinessId}/media`,
