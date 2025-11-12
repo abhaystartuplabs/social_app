@@ -2,52 +2,66 @@
 
 import { signIn, signOut, useSession } from "next-auth/react";
 
-/**
- * Client component to initiate sign-in/sign-out and display user status.
- * Requires SessionProvider to be active (done in app/layout.jsx).
- */
 export function LoginButton() {
-  // useSession() pulls context from the global SessionProvider
   const { data: session, status } = useSession();
+
+  console.log("🔍 Session Data:", session);
 
   if (status === "loading") {
     return <div className="text-gray-500">Loading authentication status...</div>;
   }
 
   if (session) {
-    // Signed In View
     return (
-      <div className="flex flex-col items-center p-6 bg-white rounded-xl shadow-lg border border-gray-100 w-full max-w-md">
-        <h2 className="text-xl font-semibold mb-2 text-green-600">
-          Signed in successfully!
+      <div className="flex flex-col items-center p-6 bg-white rounded-xl shadow-lg border border-gray-100 w-full max-w-lg text-left">
+        <h2 className="text-2xl font-semibold mb-3 text-green-600">
+          ✅ Signed in successfully!
         </h2>
-        <p className="text-gray-700 mb-4">
-          Welcome, {session.user?.name || "Instagram User"}!
+        <p className="text-gray-700 mb-2">
+          <strong>Name:</strong> {session.user?.name || "N/A"}
         </p>
+        <p className="text-gray-700 mb-2">
+          <strong>Email:</strong> {session.user?.email || "N/A"}
+        </p>
+        {session.user?.image && (
+          <img
+            src={session.user.image}
+            alt="Profile"
+            className="w-24 h-24 rounded-full my-3 shadow-md"
+          />
+        )}
+
+        <div className="mt-4 p-3 bg-gray-50 rounded text-sm text-gray-700 w-full overflow-x-auto border border-gray-200">
+          <p className="font-medium text-gray-900 mb-1">🔑 Full Session Object:</p>
+          <pre className="text-xs whitespace-pre-wrap break-all">
+            {JSON.stringify(session, null, 2)}
+          </pre>
+        </div>
+
+        <div className="mt-4 p-3 bg-gray-50 rounded text-sm text-gray-600 w-full overflow-x-auto text-left border border-gray-200">
+          <p className="font-medium">Access Token:</p>
+          <code className="block whitespace-pre-wrap break-all text-gray-800">
+            {session.accessToken || "Token not available."}
+          </code>
+        </div>
+
         <button
           onClick={() => signOut()}
-          className="px-6 py-2 text-white bg-red-500 rounded-lg hover:bg-red-600 transition duration-150 shadow-md"
+          className="mt-4 px-6 py-2 text-white bg-red-500 rounded-lg hover:bg-red-600 transition duration-150 shadow-md"
         >
           Sign Out
         </button>
-        <div className="mt-4 p-3 bg-gray-50 rounded text-sm text-gray-600 w-full overflow-x-auto text-left">
-          <p className="font-medium">Access Token (Shortened):</p>
-          <code className="block whitespace-pre-wrap break-all">
-            {session.accessToken ? `...${session.accessToken.slice(-15)}` : "Token not available."}
-          </code>
-        </div>
       </div>
     );
   }
 
-  // Signed Out View
   return (
     <div className="flex flex-col items-center p-6 bg-white rounded-xl shadow-lg border border-gray-100 w-full max-w-md">
       <h1 className="text-2xl font-bold mb-4 text-gray-800">
         Login to Instagram
       </h1>
       <button
-        onClick={() => signIn("facebook")} // Initiates the Instagram OAuth flow
+        onClick={() => signIn("facebook")} // If using Meta login
         className="flex items-center justify-center space-x-2 w-full px-6 py-3 text-white bg-pink-600 rounded-xl hover:bg-pink-700 transition duration-300 shadow-xl transform hover:scale-[1.02] active:scale-[0.98]"
       >
         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">
