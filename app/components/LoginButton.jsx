@@ -47,7 +47,7 @@ export function LoginButton() {
         Login to Instagram
       </h1>
       <button
-        onClick={() => signIn("instagram")} // Initiates the Instagram OAuth flow
+        onClick={() => signIn("facebook")} // Initiates the Instagram OAuth flow
         className="flex items-center justify-center space-x-2 w-full px-6 py-3 text-white bg-pink-600 rounded-xl hover:bg-pink-700 transition duration-300 shadow-xl transform hover:scale-[1.02] active:scale-[0.98]"
       >
         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">

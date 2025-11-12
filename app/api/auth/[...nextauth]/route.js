@@ -1,27 +1,33 @@
 import NextAuth from "next-auth";
+import FacebookProvider from "next-auth/providers/facebook";
 
 export const authOptions = {
   providers: [
-    {
-      id: "instagram", // must match signIn("instagram")
-      name: "Instagram",
-      type: "oauth",
-      version: "2.0",
-      clientId: process.env.INSTAGRAM_CLIENT_ID,
-      clientSecret: process.env.INSTAGRAM_CLIENT_SECRET,
-      authorization: "https://api.instagram.com/oauth/authorize?scope=user_profile",
-      token: "https://api.instagram.com/oauth/access_token",
-      userinfo: "https://graph.instagram.com/me?fields=id,username",
-      profile(profile) {
-        return {
-          id: profile.id,
-          name: profile.username,
-        };
+    FacebookProvider({
+      clientId: process.env.FACEBOOK_CLIENT_ID,
+      clientSecret: process.env.FACEBOOK_CLIENT_SECRET,
+      authorization: {
+        params: {
+          scope:
+            "email,public_profile,instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement",
+        },
       },
-    },
+    }),
   ],
   pages: {
-    signIn: "/login", // your custom login page
+    signIn: "/login",
+  },
+  callbacks: {
+    async jwt({ token, account }) {
+      if (account) {
+        token.accessToken = account.access_token;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      session.accessToken = token.accessToken;
+      return session;
+    },
   },
 };
 
