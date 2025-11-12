@@ -399,6 +399,7 @@ export default function Dashboard() {
     const [instagramBusinessId, setInstagramBusinessId] = useState(null);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [insights, setInsights] = useState([]);
 
     const accessToken = session?.accessToken;
 
@@ -537,7 +538,8 @@ export default function Dashboard() {
                 .map((m) => `${m.title || m.name}: ${m.values?.[0]?.value}`)
                 .join("\n");
 
-            alert(insightsText);
+            // alert(insightsText);
+            setInsights(res.data.data || []);
         } catch (err) {
             console.error("Error fetching insights:", err.response?.data || err);
             alert(`❌ Failed to fetch insights: ${err.response?.data?.error?.message}`);
