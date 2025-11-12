@@ -6,7 +6,7 @@ import axios from "axios";
 
 export default function PageDMs() {
   const { data: session, status } = useSession();
-  const [fbPageId, setFbPageId] = useState(null);
+  const [fbPage, setFbPage] = useState(null);
   const [igBusinessId, setIgBusinessId] = useState(null);
   const [fbConversations, setFbConversations] = useState([]);
   const [igConversations, setIgConversations] = useState([]);
@@ -22,27 +22,27 @@ export default function PageDMs() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // Fetch connected Facebook Page and Instagram Business account
+  // Fetch Facebook Page & Instagram Business account
   useEffect(() => {
     if (!accessToken || status !== "authenticated") return;
 
     const fetchAccounts = async () => {
       try {
-        // Facebook Pages
-        const pagesRes = await axios.get("https://graph.facebook.com/v21.0/me/accounts", {
+        const res = await axios.get("https://graph.facebook.com/v21.0/me/accounts", {
           params: { access_token: accessToken },
         });
-        const page = pagesRes.data.data?.[0];
-        if (!page) throw new Error("No connected Facebook Page found.");
-        setFbPageId(page.id);
 
-        // Instagram Business Account linked to page
+        if (!res.data.data?.length) throw new Error("No Facebook Page found.");
+
+        const page = res.data.data[0]; // Pick first page
+        setFbPage(page);
+
         const igRes = await axios.get(`https://graph.facebook.com/v21.0/${page.id}`, {
-          params: { fields: "instagram_business_account", access_token: accessToken },
+          params: { fields: "instagram_business_account", access_token: page.access_token },
         });
-        const igId = igRes.data.instagram_business_account?.id;
-        if (!igId) throw new Error("No linked Instagram Business Account found.");
-        setIgBusinessId(igId);
+
+        if (!igRes.data.instagram_business_account) throw new Error("No linked Instagram Business Account.");
+        setIgBusinessId(igRes.data.instagram_business_account.id);
       } catch (err) {
         console.error("Error fetching accounts:", err.response?.data || err);
         setError("Failed to fetch Facebook Page or Instagram Business Account.");
@@ -54,36 +54,38 @@ export default function PageDMs() {
 
   // Fetch conversations
   const fetchFBConversations = async () => {
-    if (!fbPageId) return;
+    if (!fbPage) return;
     try {
-      const res = await axios.get(`https://graph.facebook.com/v21.0/${fbPageId}/conversations`, {
-        params: { access_token: accessToken },
+      const res = await axios.get(`https://graph.facebook.com/v21.0/${fbPage.id}/conversations`, {
+        params: { access_token: fbPage.access_token },
       });
       setFbConversations(res.data.data || []);
     } catch (err) {
       console.error("Error fetching FB conversations:", err.response?.data || err);
-      setError("Failed to fetch Facebook conversations.");
+      setError("Failed to fetch Facebook conversations. Make sure your Page token is valid.");
     }
   };
 
   const fetchIGConversations = async () => {
-    if (!igBusinessId) return;
+    if (!igBusinessId || !fbPage) return;
     try {
       const res = await axios.get(`https://graph.facebook.com/v21.0/${igBusinessId}/conversations`, {
-        params: { access_token: accessToken },
+        params: { access_token: fbPage.access_token },
       });
       setIgConversations(res.data.data || []);
     } catch (err) {
       console.error("Error fetching IG conversations:", err.response?.data || err);
-      setError("Failed to fetch Instagram conversations.");
+      setError("Failed to fetch Instagram conversations. Ensure proper permissions.");
     }
   };
 
-  // Fetch messages
-  const fetchMessages = async (conversationId) => {
+  // Fetch messages from conversation
+  const fetchMessages = async (conversationId, isFB = true) => {
+    if (!fbPage) return;
     try {
+      const token = fbPage.access_token;
       const res = await axios.get(`https://graph.facebook.com/v21.0/${conversationId}/messages`, {
-        params: { access_token: accessToken },
+        params: { access_token: token },
       });
       setMessages(res.data.data || []);
       setSelectedConversation(conversationId);
@@ -97,17 +99,21 @@ export default function PageDMs() {
   // Send message
   const sendMessage = async () => {
     if (!dmReply.trim()) return alert("Message cannot be empty");
+    if (!selectedConversation || !fbPage) return;
+
     try {
       await axios.post(
         `https://graph.facebook.com/v21.0/${selectedConversation}/messages`,
         null,
-        { params: { message: dmReply, access_token: accessToken } }
+        {
+          params: { message: dmReply, access_token: fbPage.access_token },
+        }
       );
       setDmReply("");
       fetchMessages(selectedConversation);
     } catch (err) {
       console.error("Error sending message:", err.response?.data || err);
-      alert("Failed to send message.");
+      alert("Failed to send message. Make sure you use a Page token.");
     }
   };
 
@@ -115,11 +121,7 @@ export default function PageDMs() {
   if (!session)
     return (
       <p className="text-center mt-10">
-        Please{" "}
-        <a href="/" className="text-blue-600 underline">
-          log in
-        </a>{" "}
-        first.
+        Please <a href="/" className="text-blue-600 underline">log in</a> first.
       </p>
     );
 
@@ -127,6 +129,7 @@ export default function PageDMs() {
     <main className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-6xl mx-auto">
         <h1 className="text-3xl font-bold mb-6">Page & Instagram DMs</h1>
+
         {error && <p className="text-red-500 mb-4">{error}</p>}
 
         {/* Load Buttons */}
@@ -176,7 +179,7 @@ export default function PageDMs() {
                 {igConversations.map((c) => (
                   <div
                     key={c.id}
-                    onClick={() => fetchMessages(c.id)}
+                    onClick={() => fetchMessages(c.id, false)}
                     className={`cursor-pointer p-3 border rounded hover:bg-gray-50 ${
                       selectedConversation === c.id ? "border-purple-500 bg-purple-50" : ""
                     }`}
@@ -201,13 +204,13 @@ export default function PageDMs() {
                     <div
                       key={m.id}
                       className={`p-3 rounded-xl max-w-[80%] break-words ${
-                        m.from?.id === fbPageId || m.from?.id === igBusinessId
+                        m.from?.id === fbPage?.id || m.from?.id === igBusinessId
                           ? "bg-blue-100 self-end text-right"
                           : "bg-gray-100 self-start"
                       }`}
                     >
-                      <p className="text-sm">{m.text}</p>
-                      <p className="text-xs text-gray-400 mt-1">{new Date(m.timestamp).toLocaleString()}</p>
+                      <p className="text-sm">{m.message || m.text}</p>
+                      <p className="text-xs text-gray-400 mt-1">{new Date(m.created_time).toLocaleString()}</p>
                     </div>
                   ))
                 )}
