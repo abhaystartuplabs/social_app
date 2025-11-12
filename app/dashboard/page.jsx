@@ -133,48 +133,69 @@ export default function Dashboard() {
   };
 
   // 5️⃣ Delete post
-  const deletePost = async (postId) => {
+const deletePost = async (postId) => {
   if (!confirm("Are you sure you want to delete this post?")) return;
 
   try {
     const res = await axios.delete(
       `https://graph.facebook.com/v21.0/${postId}`,
-      { params: { access_token: accessToken } }
+      {
+        params: { access_token: accessToken },
+      }
     );
+
     console.log("Delete response:", res.data);
     alert("✅ Post deleted!");
     setMedia(media.filter((m) => m.id !== postId));
   } catch (err) {
+    const msg = err.response?.data?.error?.message || err.message;
+
+    if (msg.includes("#33")) {
+      alert("⚠️ You can only delete posts that were created via the Graph API.");
+    } else {
+      alert(`❌ Failed to delete post: ${msg}`);
+    }
+
     console.error("Error deleting post:", err.response?.data || err);
-    alert(`❌ Failed to delete post: ${err.response?.data?.error?.message}`);
   }
 };
 
 
+
   // 6️⃣ Fetch post insights
-  const fetchInsights = async (postId) => {
+ const fetchInsights = async (postId) => {
   try {
     const res = await axios.get(
       `https://graph.facebook.com/v21.0/${postId}/insights`,
       {
         params: {
-          metric: "impressions,reach,engagement,saved",
+          // ✅ Use only valid metrics
+          metric: "impressions,reach,likes,comments,saved,shares",
           access_token: accessToken,
         },
       }
     );
 
     console.log("Insights data:", res.data);
-    alert(
-      res.data.data
-        ?.map((m) => `${m.title || m.name}: ${m.values?.[0]?.value}`)
-        .join("\n") || "No insights found"
-    );
+
+    if (!res.data.data?.length) {
+      alert("No insights available for this post.");
+      return;
+    }
+
+    const insightsText = res.data.data
+      .map((m) => `${m.title || m.name}: ${m.values?.[0]?.value}`)
+      .join("\n");
+
+    alert(insightsText);
   } catch (err) {
     console.error("Error fetching insights:", err.response?.data || err);
-    alert(`❌ Failed to fetch insights: ${err.response?.data?.error?.message}`);
+    alert(
+      `❌ Failed to fetch insights: ${err.response?.data?.error?.message || "Unknown error"}`
+    );
   }
 };
+
 
 
   // 7️⃣ Create new post
