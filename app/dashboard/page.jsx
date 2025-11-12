@@ -16,13 +16,14 @@ export default function Dashboard() {
     const [caption, setCaption] = useState("");
     const [imageUrl, setImageUrl] = useState("");
     const [instagramBusinessId, setInstagramBusinessId] = useState(null);
+    const [permissions, setPermissions] = useState([]);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
     const [insights, setInsights] = useState([]);
     const router = useRouter()
 
     const accessToken = session?.accessToken;
-    console.log("accessToken:-",accessToken)
+    console.log("accessToken:-", accessToken)
 
     const timeAgo = (timestamp) => {
         const diff = (new Date() - new Date(timestamp)) / 1000;
@@ -109,6 +110,43 @@ export default function Dashboard() {
             setComments([]);
         }
     };
+
+    // Fetch permissions and IG Business account
+    useEffect(() => {
+        if (!accessToken || status !== "authenticated") return;
+
+        const fetchIGBusinessAndPermissions = async () => {
+            try {
+                // 1️⃣ Fetch user permissions
+                const permRes = await axios.get(
+                    `https://graph.facebook.com/v21.0/me/permissions`,
+                    { params: { access_token: accessToken } }
+                );
+                setPermissions(permRes.data.data || []);
+
+                // 2️⃣ Fetch connected Facebook Pages
+                const pagesRes = await axios.get("https://graph.facebook.com/v21.0/me/accounts", {
+                    params: { access_token: accessToken },
+                });
+                const page = pagesRes.data.data?.[0];
+                if (!page) throw new Error("No connected Facebook Page found.");
+
+                // 3️⃣ Get linked Instagram Business Account
+                const igRes = await axios.get(`https://graph.facebook.com/v21.0/${page.id}`, {
+                    params: { fields: "instagram_business_account", access_token: accessToken },
+                });
+                const igId = igRes.data.instagram_business_account?.id;
+                if (!igId) throw new Error("No linked Instagram Business Account found.");
+
+                setInstagramBusinessId(igId);
+            } catch (err) {
+                console.error("Error fetching IG business account or permissions:", err.response?.data || err);
+                setError(err.response?.data?.error?.message || "Failed to fetch data.");
+            }
+        };
+
+        fetchIGBusinessAndPermissions();
+    }, [accessToken, status]);
 
     // Reply to comment
     const postReply = async (commentId) => {
@@ -198,7 +236,7 @@ export default function Dashboard() {
 
                 {error && <p className="text-red-500 mb-4">{error}</p>}
 
-                <div
+                {/* <div
                     onClick={() => router.push('/dashboard/instagram-dms')}
                     className="cursor-pointer bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-6 py-4 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 flex items-center justify-center space-x-2"
                 >
@@ -217,27 +255,54 @@ export default function Dashboard() {
                         />
                     </svg>
                     <span className="font-medium text-lg">View DM's</span>
+                </div> */}
+
+
+                {/* Profile Info and Permissions */}
+                <div className="max-w-4xl mx-auto">
+
+                    {/* Profile Info */}
+                    {account && (
+                        <div className="bg-white p-6 rounded-xl shadow-md flex flex-col md:flex-row items-center md:items-start space-y-4 md:space-y-0 md:space-x-6 mb-8">
+                            <img
+                                src={account.profile_picture_url}
+                                alt="Profile"
+                                className="w-24 h-24 rounded-full border-2 border-gray-200 object-cover"
+                            />
+                            <div className="text-center md:text-left">
+                                <h2 className="text-2xl font-bold">@{account.username}</h2>
+                                {account.name && <p className="text-gray-700">{account.name}</p>}
+                                <p className="text-sm text-gray-500 mt-1">
+                                    Followers: <span className="font-medium">{account.followers_count}</span> |
+                                    Following: <span className="font-medium">{account.follows_count}</span> |
+                                    Posts: <span className="font-medium">{account.media_count}</span>
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Token Permissions */}
+                    {permissions.length > 0 && (
+                        <div className="bg-yellow-50 p-5 rounded-xl shadow-md mb-8">
+                            <h2 className="text-lg font-semibold mb-3">Your Token Permissions</h2>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {permissions.map((p) => (
+                                    <div
+                                        key={p.permission}
+                                        className="flex justify-between bg-yellow-100 rounded-md px-3 py-2 text-sm font-medium text-yellow-800 shadow-sm"
+                                    >
+                                        <span>{p.permission}</span>
+                                        <span className={p.status === "granted" ? "text-green-600" : "text-red-600"}>
+                                            {p.status}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                 </div>
 
-
-                {/* Profile Info */}
-                {account && (
-                    <div className="bg-white p-6 rounded-xl shadow flex items-center space-x-6 mb-8">
-                        <img
-                            src={account.profile_picture_url}
-                            className="w-20 h-20 rounded-full border"
-                            alt="Profile"
-                        />
-                        <div>
-                            <h2 className="text-xl font-semibold">@{account.username}</h2>
-                            <p>{account.name}</p>
-                            <p className="text-sm text-gray-600">
-                                Followers: {account.followers_count} | Following: {account.follows_count} | Posts:{" "}
-                                {account.media_count}
-                            </p>
-                        </div>
-                    </div>
-                )}
 
                 {/* Create Post */}
                 <div className="bg-white p-6 rounded-xl shadow mb-8">
