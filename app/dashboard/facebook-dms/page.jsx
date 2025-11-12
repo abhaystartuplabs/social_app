@@ -210,42 +210,64 @@ export default function PageDMs() {
           </div>
 
           {/* Messages */}
-          {selectedConversation && (
-            <div className="bg-white p-4 rounded-xl shadow flex flex-col max-h-[70vh]">
-              <h2 className="text-xl font-semibold mb-4">Messages</h2>
-              <div className="flex-1 overflow-y-auto space-y-2">
-                {messages.length === 0 ? (
-                  <p className="text-gray-500">No messages in this conversation.</p>
-                ) : (
-                  messages.map((m) => (
-                    <div
-                      key={m.id}
-                      className={`p-3 rounded-xl max-w-[80%] break-words ${m.from?.id === fbPage?.id || m.from?.id === igBusinessId
-                        ? "bg-blue-100 self-end text-right"
-                        : "bg-gray-100 self-start"
-                        }`}
-                    >
-                      <p className="text-sm">{m.message}</p>
-                      <p className="text-xs text-gray-400 mt-1">{new Date(m.created_time).toLocaleString()}</p>
-                      <p className="text-xs text-gray-500 mt-1">From: {m.from?.name}</p>
-                    </div>
-                  ))
+          {/* Messages */}
+{selectedConversation && (
+  <div className="bg-white p-4 rounded-xl shadow flex flex-col max-h-[70vh]">
+    <h2 className="text-xl font-semibold mb-4">Messages</h2>
+
+    <div className="flex-1 overflow-y-auto space-y-2 flex flex-col">
+      {messages.length === 0 ? (
+        <p className="text-gray-500 text-center mt-4">No messages in this conversation.</p>
+      ) : (
+        messages
+          .slice() // clone array
+          .sort((a, b) => new Date(a.created_time) - new Date(b.created_time)) // oldest first
+          .map((m) => {
+            const isPageMessage = m.from?.id === fbPage?.id;
+            const senderName = m.from?.name || "Unknown";
+            return (
+              <div
+                key={m.id}
+                className={`max-w-[80%] p-3 rounded-xl break-words flex flex-col ${
+                  isPageMessage
+                    ? "self-end bg-blue-100 text-right"
+                    : "self-start bg-gray-100 text-left"
+                }`}
+              >
+                {!isPageMessage && (
+                  <p className="text-xs font-semibold text-gray-700 mb-1">{senderName}</p>
                 )}
-                <div ref={messagesEndRef} />
+                <p className="text-sm">{m.message || m.text}</p>
+                <p className="text-xs text-gray-400 mt-1">
+                  {new Date(m.created_time || m.timestamp).toLocaleString()}
+                </p>
               </div>
-              <div className="flex space-x-2 mt-2">
-                <input
-                  type="text"
-                  placeholder="Type a message..."
-                  value={dmReply}
-                  onChange={(e) => setDmReply(e.target.value)}
-                  className="flex-1 p-3 border rounded-xl focus:ring-2 focus:ring-blue-400 outline-none"
-                  onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-                />
-                <button onClick={sendMessage} className="bg-blue-600 text-white px-5 py-2 rounded-xl hover:bg-blue-700">Send</button>
-              </div>
-            </div>
-          )}
+            );
+          })
+      )}
+      <div ref={messagesEndRef} />
+    </div>
+
+    {/* Input Box */}
+    <div className="flex space-x-2 mt-2">
+      <input
+        type="text"
+        placeholder="Type a message..."
+        value={dmReply}
+        onChange={(e) => setDmReply(e.target.value)}
+        className="flex-1 p-3 border rounded-xl focus:ring-2 focus:ring-blue-400 outline-none"
+        onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+      />
+      <button
+        onClick={sendMessage}
+        className="bg-blue-600 text-white px-5 py-2 rounded-xl hover:bg-blue-700"
+      >
+        Send
+      </button>
+    </div>
+  </div>
+)}
+
         </div>
       </div>
     </main>
