@@ -28,18 +28,23 @@ export default function PageDMs() {
 
     const fetchAccounts = async () => {
       try {
+        console.log("Fetching Facebook Pages...");
         const res = await axios.get("https://graph.facebook.com/v21.0/me/accounts", {
           params: { access_token: accessToken },
         });
+        console.log("Pages data:", res.data);
 
         if (!res.data.data?.length) throw new Error("No Facebook Page found.");
 
         const page = res.data.data[0]; // Pick first page
+        console.log("Selected FB Page:", page);
         setFbPage(page);
 
+        console.log("Fetching linked Instagram Business Account...");
         const igRes = await axios.get(`https://graph.facebook.com/v21.0/${page.id}`, {
           params: { fields: "instagram_business_account", access_token: page.access_token },
         });
+        console.log("IG Business data:", igRes.data);
 
         if (!igRes.data.instagram_business_account) throw new Error("No linked Instagram Business Account.");
         setIgBusinessId(igRes.data.instagram_business_account.id);
@@ -56,9 +61,11 @@ export default function PageDMs() {
   const fetchFBConversations = async () => {
     if (!fbPage) return;
     try {
+      console.log("Fetching Facebook Page conversations...");
       const res = await axios.get(`https://graph.facebook.com/v21.0/${fbPage.id}/conversations`, {
         params: { access_token: fbPage.access_token },
       });
+      console.log("FB Conversations:", res.data);
       setFbConversations(res.data.data || []);
     } catch (err) {
       console.error("Error fetching FB conversations:", err.response?.data || err);
@@ -69,9 +76,11 @@ export default function PageDMs() {
   const fetchIGConversations = async () => {
     if (!igBusinessId || !fbPage) return;
     try {
+      console.log("Fetching Instagram conversations...");
       const res = await axios.get(`https://graph.facebook.com/v21.0/${igBusinessId}/conversations`, {
         params: { access_token: fbPage.access_token },
       });
+      console.log("IG Conversations:", res.data);
       setIgConversations(res.data.data || []);
     } catch (err) {
       console.error("Error fetching IG conversations:", err.response?.data || err);
@@ -79,14 +88,16 @@ export default function PageDMs() {
     }
   };
 
-  // Fetch messages from conversation
+  // Fetch messages
   const fetchMessages = async (conversationId, isFB = true) => {
     if (!fbPage) return;
     try {
+      console.log(`Fetching messages for conversation ${conversationId}...`);
       const token = fbPage.access_token;
       const res = await axios.get(`https://graph.facebook.com/v21.0/${conversationId}/messages`, {
         params: { access_token: token },
       });
+      console.log("Messages data:", res.data);
       setMessages(res.data.data || []);
       setSelectedConversation(conversationId);
       setTimeout(scrollToBottom, 100);
@@ -102,13 +113,18 @@ export default function PageDMs() {
     if (!selectedConversation || !fbPage) return;
 
     try {
+      console.log("Sending message:", dmReply);
       await axios.post(
         `https://graph.facebook.com/v21.0/${selectedConversation}/messages`,
         null,
         {
-          params: { message: dmReply, access_token: fbPage.access_token },
+          params: {
+            message: dmReply,
+            access_token: fbPage.access_token,
+          },
         }
       );
+      console.log("Message sent successfully!");
       setDmReply("");
       fetchMessages(selectedConversation);
     } catch (err) {
@@ -132,20 +148,9 @@ export default function PageDMs() {
 
         {error && <p className="text-red-500 mb-4">{error}</p>}
 
-        {/* Load Buttons */}
         <div className="flex space-x-4 mb-6">
-          <button
-            onClick={fetchFBConversations}
-            className="bg-blue-600 text-white px-5 py-2 rounded hover:bg-blue-700"
-          >
-            Load Facebook Page DMs
-          </button>
-          <button
-            onClick={fetchIGConversations}
-            className="bg-purple-600 text-white px-5 py-2 rounded hover:bg-purple-700"
-          >
-            Load Instagram DMs
-          </button>
+          <button onClick={fetchFBConversations} className="bg-blue-600 text-white px-5 py-2 rounded hover:bg-blue-700">Load Facebook DMs</button>
+          <button onClick={fetchIGConversations} className="bg-purple-600 text-white px-5 py-2 rounded hover:bg-purple-700">Load Instagram DMs</button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -153,7 +158,6 @@ export default function PageDMs() {
           <div className="bg-white p-4 rounded-xl shadow space-y-4 max-h-[70vh] overflow-y-auto">
             <h2 className="text-xl font-semibold mb-2">Conversations</h2>
 
-            {/* Facebook DMs */}
             {fbConversations.length > 0 && (
               <div>
                 <h3 className="font-semibold text-blue-600 mb-2">Facebook Page</h3>
@@ -172,7 +176,6 @@ export default function PageDMs() {
               </div>
             )}
 
-            {/* Instagram DMs */}
             {igConversations.length > 0 && (
               <div>
                 <h3 className="font-semibold text-purple-600 mb-2">Instagram</h3>
@@ -209,8 +212,8 @@ export default function PageDMs() {
                           : "bg-gray-100 self-start"
                       }`}
                     >
-                      <p className="text-sm">{m.message || m.text}</p>
-                      <p className="text-xs text-gray-400 mt-1">{new Date(m.created_time).toLocaleString()}</p>
+                      <p className="text-sm">{m.message || m.text || JSON.stringify(m)}</p>
+                      <p className="text-xs text-gray-400 mt-1">{new Date(m.created_time || m.timestamp).toLocaleString()}</p>
                     </div>
                   ))
                 )}
@@ -225,12 +228,7 @@ export default function PageDMs() {
                   className="flex-1 p-3 border rounded-xl focus:ring-2 focus:ring-blue-400 outline-none"
                   onKeyDown={(e) => e.key === "Enter" && sendMessage()}
                 />
-                <button
-                  onClick={sendMessage}
-                  className="bg-blue-600 text-white px-5 py-2 rounded-xl hover:bg-blue-700"
-                >
-                  Send
-                </button>
+                <button onClick={sendMessage} className="bg-blue-600 text-white px-5 py-2 rounded-xl hover:bg-blue-700">Send</button>
               </div>
             </div>
           )}
