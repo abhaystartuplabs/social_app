@@ -8,10 +8,33 @@ const API_BASE = "https://graph.instagram.com/v24.0";
 const DEFAULT_TOKEN = "IGAAMOQ8i2B2JBZAFRJMjJWaTVNd1N6RnpFVHJVS19uRTc2Rl9DLXJJVk1hRXVUbVZAINFNUVTBWbm5xRHZAISnZAxRHhid09aU2RJX3RRbURiOEd3TTVmY3N0eW1rcE1wbmROMVFtTEVNaDlqWmFadkpaam5oWVNGcmpleXVkSnd0UQZDZD"; 
 
 
-// Custom utility to handle fetch, error parsing, and exponential backoff
-const handleApiCall = async (endpoint, params = {}, method = 'GET') => {
-  const query = new URLSearchParams(params).toString();
-  const fullUrl = `${API_BASE}/${endpoint}${query ? '?' + query : ''}`;
+// Custom utility updated to handle both GET (query params) and POST (form body)
+const handleApiCall = async (endpoint, params = {}, method = 'GET', body = null) => {
+  console.log(`%c[API Call] Starting ${method} request to endpoint: ${endpoint}`, 'color: #1e40af; font-weight: bold;');
+  
+  let fullUrl = `${API_BASE}/${endpoint}`;
+  let options = { method };
+
+  // 1. Handle GET query parameters
+  if (method === 'GET' && Object.keys(params).length > 0) {
+      const query = new URLSearchParams(params).toString();
+      fullUrl = `${fullUrl}?${query}`;
+  }
+  
+  // 2. Handle POST body data
+  if (body && method === 'POST') {
+      // Use URLSearchParams for form-urlencoded body (standard for Graph API POST)
+      const formData = new URLSearchParams(body);
+      options.body = formData.toString();
+      options.headers = {
+          'Content-Type': 'application/x-www-form-urlencoded',
+      };
+      console.log(`%c[API Call Step] POST Body prepared (Form Data): ${options.body}`, 'color: #3b82f6;');
+  } else if (method !== 'POST' && Object.keys(params).length > 0) {
+       // Append params to URL for non-POST methods 
+       const query = new URLSearchParams(params).toString();
+       fullUrl = `${fullUrl}?${query}`;
+  }
 
   let response, data;
   let delay = 1000;
@@ -19,12 +42,14 @@ const handleApiCall = async (endpoint, params = {}, method = 'GET') => {
 
   for (let i = 0; i < maxRetries; i++) {
     try {
-        response = await fetch(fullUrl, { method });
+        console.log(`%c[API Call Step] Attempt ${i + 1} to URL: ${fullUrl}`, 'color: #60a5fa;');
+        response = await fetch(fullUrl, options);
         data = await response.json();
 
         // Check for specific rate-limit/server errors that warrant a retry
         if (response.status === 429 || response.status >= 500) {
             if (i < maxRetries - 1) {
+                console.warn(`%c[API Call Step] Rate limit or server error (${response.status}). Retrying in ${delay}ms...`, 'color: #f59e0b;');
                 await new Promise(resolve => setTimeout(resolve, delay));
                 delay *= 2; // Exponential backoff
                 continue;
@@ -33,11 +58,13 @@ const handleApiCall = async (endpoint, params = {}, method = 'GET') => {
 
         if (!response.ok || data.error) {
           const errorMessage = data.error?.message || `HTTP error! Status: ${response.status}`;
-          console.error("API Error Response:", data.error || data);
+          console.error("%c[API Call Step] API Error Response:", 'color: #ef4444; font-weight: bold;', data.error || data);
           throw new Error(errorMessage);
         }
+        console.log("%c[API Call Step] Successful Response:", 'color: #10b981; font-weight: bold;', data);
         return data;
     } catch (error) {
+        console.error(`%c[API Call Step] Fetch failed (attempt ${i + 1}):`, 'color: #ef4444;', error);
         if (i < maxRetries - 1 && error.message.includes("Network")) {
              await new Promise(resolve => setTimeout(resolve, delay));
              delay *= 2; 
@@ -58,6 +85,10 @@ export default function InstagramDMs() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   
+  // New state for sending messages
+  const [newMessageText, setNewMessageText] = useState("");
+  const [isSending, setIsSending] = useState(false);
+  
   const messagesEndRef = useRef(null);
   const accessToken = userToken;
 
@@ -67,6 +98,7 @@ export default function InstagramDMs() {
 
   // Helper to fetch details for a single message (API Call 3)
   const fetchMessageDetails = useCallback(async (messageId) => {
+    console.log(`%c[API Call 3] Fetching details for message ID: ${messageId}`, 'color: #8b5cf6;');
     try {
         const details = await handleApiCall(
             messageId,
@@ -89,7 +121,7 @@ export default function InstagramDMs() {
             isSender: details.from?.id === currentUserId 
         };
     } catch (err) {
-        console.error(`Failed to fetch details for message ${messageId}:`, err);
+        console.error(`%c[API Call 3 Error] Failed to fetch details for message ${messageId}:`, 'color: #ef4444;', err);
         return { id: messageId, text: "[Error loading message details]" };
     }
   }, [accessToken, currentUserId]);
@@ -103,6 +135,7 @@ export default function InstagramDMs() {
     setMessages([]);
     
     try {
+        console.log(`%c[API Call 2] Fetching basic message list for conversation: ${conversationId}`, 'color: #c084fc;');
         // --- API Call 2: Get basic message list from conversation edge ---
         const msgListRes = await handleApiCall(
             `${conversationId}/messages`,
@@ -117,14 +150,18 @@ export default function InstagramDMs() {
         
         // Infer the Current User ID from the first message's 'to' field if not set
         if (!currentUserId && basicMessages.length > 0) {
+             console.log("%c[Logic] Inferring Current User ID from message recipient...", 'color: #10b981;');
+             // We need to fetch details of at least one message to find the recipient (our ID)
              const firstMessageDetails = await fetchMessageDetails(basicMessages[0].id);
              const recipient = firstMessageDetails.to?.data?.[0];
              if(recipient) {
                  setCurrentUserId(recipient.id);
+                 console.log(`%c[Logic] Current User ID set to: ${recipient.id}`, 'color: #10b981;');
              }
         }
         
         // --- API Call 3 Loop: Fetch full details for each message (Necessary for complete metadata) ---
+        console.log(`%c[API Call 3 Loop] Starting detail fetch for ${basicMessages.length} messages.`, 'color: #8b5cf6;');
         const detailedMessagesPromises = basicMessages.map(m => fetchMessageDetails(m.id));
         const detailedMessages = await Promise.all(detailedMessagesPromises);
         
@@ -157,6 +194,7 @@ export default function InstagramDMs() {
     setMessages([]);
 
     try {
+      console.log("%c[API Call 1] Fetching conversations list (me/conversations).", 'color: #3b82f6;');
       const data = await handleApiCall(
         `me/conversations`,
         { 
@@ -177,6 +215,49 @@ export default function InstagramDMs() {
   }, [accessToken]);
 
 
+  // 4. Send a message (New Functionality)
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+    if (!selectedConversation || !newMessageText.trim() || isSending) {
+        setError("Cannot send: No conversation selected or message is empty.");
+        return;
+    }
+    
+    setIsSending(true);
+    setError(null);
+    const messageToSend = newMessageText.trim();
+    
+    try {
+        console.log(`%c[API Call 4] Preparing to send message to conversation ID: ${selectedConversation}`, 'color: #f97316; font-weight: bold;');
+        
+        const payload = {
+            access_token: accessToken,
+            message: messageToSend,
+        };
+        
+        // --- API Call 4: POST request to send message ---
+        const sendRes = await handleApiCall(
+            `${selectedConversation}/messages`,
+            {}, // No query params needed, body holds everything
+            'POST',
+            payload // Data for the POST body
+        );
+        
+        console.log("%c[API Call 4 Success] Message sent. Refreshing messages.", 'color: #10b981; font-weight: bold;', sendRes);
+
+        // Clear input and optimistically refresh the chat window
+        setNewMessageText("");
+        // Refresh the messages to see the new message (triggers API Call 2 & 3)
+        await fetchMessages(selectedConversation);
+
+    } catch (err) {
+        setError(err.message || "Failed to send message. Check console for details.");
+    } finally {
+        setIsSending(false);
+    }
+  };
+
+
   useEffect(() => {
     // Automatically fetch conversations if a token is present and submitted
     if (isTokenEntered && conversations.length === 0) {
@@ -194,6 +275,7 @@ export default function InstagramDMs() {
       setCurrentUserId(null);
       setError(null);
       setIsTokenEntered(true);
+      console.log("%c[Event] Access Token submitted. Starting fetchConversations (API Call 1).", 'color: #3b82f6;');
   };
   
   const isReady = isTokenEntered && conversations.length > 0;
@@ -222,7 +304,7 @@ export default function InstagramDMs() {
     <main className="min-h-screen bg-gray-50 p-4 sm:p-6 font-sans">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-extrabold text-gray-800 mb-6 border-b pb-2">
-          Instagram DM Viewer (3-API Flow) 🚀
+          Instagram DM Viewer & Sender 🚀
         </h1>
         
         {/* Access Token Input */}
@@ -302,7 +384,7 @@ export default function InstagramDMs() {
                     : "Select a conversation"
                 }
             </h2>
-            <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar mb-4">
                 {loading && selectedConversation && <LoadingIndicator />}
                 {!selectedConversation ? (
                     <p className="text-gray-500 text-center py-10">Select a conversation from the list to view its messages.</p>
@@ -338,6 +420,32 @@ export default function InstagramDMs() {
                 )}
               <div ref={messagesEndRef} />
             </div>
+            
+            {/* Message Input (New Functionality - API Call 4) */}
+            {selectedConversation && (
+                <form onSubmit={handleSendMessage} className="flex mt-4 pt-4 border-t border-gray-100">
+                    <input
+                        type="text"
+                        value={newMessageText}
+                        onChange={(e) => setNewMessageText(e.target.value)}
+                        placeholder="Type a message..."
+                        className="flex-1 p-3 border border-gray-300 rounded-l-xl focus:ring-blue-500 focus:border-blue-500 outline-none transition duration-150"
+                        disabled={isSending || loading}
+                    />
+                    <button
+                        type="submit"
+                        className="bg-blue-600 text-white px-6 py-3 rounded-r-xl font-semibold hover:bg-blue-700 transition duration-200 disabled:opacity-50 flex items-center justify-center"
+                        disabled={isSending || loading || !newMessageText.trim()}
+                    >
+                        {isSending ? (
+                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                        ) : (
+                            'Send (API Call 4)'
+                        )}
+                    </button>
+                </form>
+            )}
+
           </div>
         </div>
       </div>
