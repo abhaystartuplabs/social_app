@@ -10,9 +10,6 @@ export default function Home() {
 
   const logout = () => {
     signOut();
-    setTimeout(() => {
-      router.push("/login");
-    }, 2000);
   };
 
   if (status === "loading") {
@@ -62,13 +59,6 @@ export default function Home() {
             >
               Go to Dashboard (Protected)
             </Link>
-
-            <div className="w-full bg-gray-50 border border-gray-200 p-3 rounded text-sm text-gray-700 overflow-x-auto">
-              <p className="font-medium text-gray-900 mb-1">🔑 Full Session Object:</p>
-              <pre className="whitespace-pre-wrap break-all text-xs">
-                {JSON.stringify(session, null, 2)}
-              </pre>
-            </div>
 
             <div className="w-full bg-gray-50 border border-gray-200 p-3 rounded text-sm text-gray-700 overflow-x-auto">
               <p className="font-medium mb-1">Access Token:</p>
