@@ -20,6 +20,8 @@ export default function Dashboard() {
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
     const [insights, setInsights] = useState([]);
+    const [replyType, setReplyType] = useState("public");
+    const [replyText, setReplyText] = useState({});
     const router = useRouter()
 
     const accessToken = session?.accessToken;
@@ -103,8 +105,8 @@ export default function Dashboard() {
             });
 
             setComments(res.data.data || []);
-            console.log("Comment of Post:-",res)
-            console.log("Post Id:-",postId)
+            console.log("Comment of Post:-", res)
+            console.log("Post Id:-", postId)
             setModalPost(postId);
             setModalType("comments");
         } catch (err) {
@@ -151,20 +153,60 @@ export default function Dashboard() {
     }, [accessToken, status]);
 
     // Reply to comment
-    const postReply = async (commentId) => {
-        if (!reply) return alert("Reply cannot be empty");
+    // const postReply = async (commentId) => {
+    //     if (!reply) return alert("Reply cannot be empty");
+    //     try {
+    //         await axios.post(`https://graph.facebook.com/v21.0/${commentId}/replies`, null, {
+    //             params: { message: reply, access_token: accessToken },
+    //         });
+    //         setReply("");
+    //         fetchComments(modalPost);
+    //         alert("✅ Reply posted!");
+    //     } catch (err) {
+    //         console.error("Error replying to comment:", err.response?.data || err);
+    //         alert("❌ Failed to reply. Check permissions for `instagram_manage_comments`.");
+    //     }
+    // };
+
+    const postReply = async (commentId, message, type = "public") => {
+        if (!message?.trim()) return alert("Please enter a reply.");
+
         try {
-            await axios.post(`https://graph.facebook.com/v21.0/${commentId}/replies`, null, {
-                params: { message: reply, access_token: accessToken },
-            });
-            setReply("");
-            fetchComments(modalPost);
-            alert("✅ Reply posted!");
+            if (type === "public") {
+                // Public reply
+                await axios.post(`https://graph.facebook.com/v23.0/${commentId}/replies`, null, {
+                    params: {
+                        message,
+                        access_token: accessToken,
+                    },
+                });
+                alert("✅ Public reply sent!");
+            } else {
+                // Private reply
+                await axios.post(
+                    `https://graph.facebook.com/v23.0/${instagramBusinessId}/messages`,
+                    {
+                        recipient: { comment_id: commentId },
+                        message: { text: message },
+                    },
+                    {
+                        headers: { "Content-Type": "application/json" },
+                        params: { access_token: accessToken },
+                    }
+                );
+                alert("✅ Private message sent!");
+            }
+
+            // Clear the reply input
+            setReplyText((prev) => ({ ...prev, [commentId]: "" }));
+            fetchComments(modalPost); // Refresh comments
         } catch (err) {
-            console.error("Error replying to comment:", err.response?.data || err);
-            alert("❌ Failed to reply. Check permissions for `instagram_manage_comments`.");
+            console.error("Reply Error:", err.response?.data || err);
+            alert(`❌ Failed to send ${type} reply. Check permissions or API access.`);
         }
     };
+
+
 
     // Fetch insights
     const fetchInsights = async (postId) => {
@@ -432,14 +474,40 @@ export default function Dashboard() {
                                     ) : (
                                         <div className="space-y-4">
                                             {comments.map((c) => (
-                                                <div key={c.id} className="flex flex-col space-y-2 p-3 bg-gray-50 rounded-xl shadow-sm">
+                                                <div
+                                                    key={c.id}
+                                                    className="flex flex-col space-y-2 p-3 bg-gray-50 rounded-xl shadow-sm"
+                                                >
                                                     <div className="flex justify-between items-center">
                                                         <p className="font-semibold">{c.username || "Anonymous"}</p>
                                                         <p className="text-xs text-gray-400">{timeAgo(c.timestamp)}</p>
                                                     </div>
+
                                                     <p className="text-gray-700">{c.text}</p>
-                                                    <div className="flex space-x-2">
-                                                        <button onClick={() => postReply(c.id)} className="text-blue-600 text-sm hover:underline">Reply</button>
+
+                                                    {/* Reply input box */}
+                                                    <div className="flex items-center space-x-2 mt-2">
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Write a reply..."
+                                                            className="flex-1 p-2 border rounded-lg focus:ring-2 focus:ring-blue-400 outline-none"
+                                                            value={replyText[c.id] || ""}
+                                                            onChange={(e) =>
+                                                                setReplyText({ ...replyText, [c.id]: e.target.value })
+                                                            }
+                                                        />
+                                                        <button
+                                                            onClick={() => postReply(c.id, replyText[c.id], "public")}
+                                                            className="bg-blue-500 text-white px-3 py-2 rounded-md text-sm hover:bg-blue-600"
+                                                        >
+                                                            Public
+                                                        </button>
+                                                        <button
+                                                            onClick={() => postReply(c.id, replyText[c.id], "private")}
+                                                            className="bg-green-500 text-white px-3 py-2 rounded-md text-sm hover:bg-green-600"
+                                                        >
+                                                            Private
+                                                        </button>
                                                     </div>
 
                                                     {/* Nested replies */}
@@ -458,8 +526,8 @@ export default function Dashboard() {
                                                     )}
                                                 </div>
                                             ))}
-
                                         </div>
+
                                     )}
                                     <div className="mt-4">
                                         <input
