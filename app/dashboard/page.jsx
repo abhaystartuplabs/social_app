@@ -216,13 +216,13 @@ export default function Dashboard() {
       alert("✅ Public reply sent!");
     } else {
       console.log("📩 Sending PRIVATE reply:", {
-        endpoint: `https://graph.facebook.com/v23.0/${instagramBusinessId}/messages`,
+        endpoint: `https://graph.instagram.com/v23.0/${instagramBusinessId}/messages`,
         tokenUsed: "pageAccessToken",
         recipient_comment_id: commentId,
       });
 
       const res = await axios.post(
-        `https://graph.facebook.com/v23.0/${instagramBusinessId}/messages`,
+        `https://graph.instagram.com/v23.0/${instagramBusinessId}/messages`,
         {
           recipient: { comment_id: commentId },
           message: { text: message },
