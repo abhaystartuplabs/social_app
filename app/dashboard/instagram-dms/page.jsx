@@ -20,6 +20,69 @@ export default function InstagramDMs() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  // Fetch connected Instagram Business Account ID
+  useEffect(() => {
+    const getIGBusinessId = async () => {
+      try {
+        const res = await axios.get(
+          `https://graph.facebook.com/v21.0/me/accounts?access_token=${accessToken}`
+        );
+
+        // Assuming user has only one connected Page with IG
+        const page = res.data.data[0];
+        if (page) {
+          const igRes = await axios.get(
+            `https://graph.facebook.com/v21.0/${page.id}?fields=instagram_business_account&access_token=${accessToken}`
+          );
+          const igId = igRes.data.instagram_business_account?.id;
+          if (igId) setInstagramBusinessId(igId);
+          console.log("✅ Found Instagram Business ID:", igId);
+        }
+      } catch (err) {
+        console.error("Error fetching Instagram Business ID:", err.response?.data || err);
+        setError("Failed to fetch Instagram Business Account.");
+      }
+    };
+
+    if (accessToken) getIGBusinessId();
+  }, [accessToken]);
+
+  // Fetch Instagram Business Account ID from connected Facebook Page
+  useEffect(() => {
+    const getIGBusinessId = async () => {
+      if (!accessToken) return;
+      try {
+        const res = await axios.get(
+          `https://graph.facebook.com/v21.0/me/accounts?access_token=${accessToken}`
+        );
+        console.log("🔹 Pages Data:", res.data);
+        const page = res.data.data?.[0];
+        if (!page) {
+          setError("No Facebook Page linked to this account.");
+          return;
+        }
+
+        const igRes = await axios.get(
+          `https://graph.facebook.com/v21.0/${page.id}?fields=instagram_business_account&access_token=${accessToken}`
+        );
+        console.log("🔹 IG Business Account Data:", igRes.data);
+        const igId = igRes.data.instagram_business_account?.id;
+        if (igId) {
+          setInstagramBusinessId(igId);
+          console.log("✅ Instagram Business ID:", igId);
+        } else {
+          setError("No Instagram Business Account found for this Page.");
+        }
+      } catch (err) {
+        console.error("❌ Error fetching IG Business Account:", err.response?.data || err);
+        setError(err.response?.data?.error?.message || "Failed to fetch Instagram Business Account.");
+      }
+    };
+
+    getIGBusinessId();
+  }, [accessToken]);
+
+
   // Fetch DM conversations
   const fetchConversations = async () => {
     if (!instagramBusinessId) return;
@@ -51,6 +114,11 @@ export default function InstagramDMs() {
       setTimeout(scrollToBottom, 100);
     } catch (err) {
       console.error("Error fetching messages:", err.response?.data || err);
+      console.group("📩 API Error Debug");
+      console.log("Endpoint:", err.config?.url);
+      console.log("Params:", err.config?.params);
+      console.log("Response:", err.response?.data || err.message);
+      console.groupEnd();
       setError(err.response?.data?.error?.message || "Failed to fetch messages.");
     }
   };
@@ -64,10 +132,16 @@ export default function InstagramDMs() {
         null,
         { params: { message: dmReply, access_token: accessToken } }
       );
+
       setDmReply("");
       fetchMessages(selectedConversation); // Refresh messages
     } catch (err) {
       console.error("Error sending message:", err.response?.data || err);
+      console.group("📩 API Error Debug");
+      console.log("Endpoint:", err.config?.url);
+      console.log("Params:", err.config?.params);
+      console.log("Response:", err.response?.data || err.message);
+      console.groupEnd();
       alert(err.response?.data?.error?.message || "Failed to send message.");
     }
   };
@@ -109,9 +183,8 @@ export default function InstagramDMs() {
                 <div
                   key={c.id}
                   onClick={() => fetchMessages(c.id)}
-                  className={`cursor-pointer p-3 border rounded hover:bg-gray-50 ${
-                    selectedConversation === c.id ? "border-blue-500 bg-blue-50" : ""
-                  }`}
+                  className={`cursor-pointer p-3 border rounded hover:bg-gray-50 ${selectedConversation === c.id ? "border-blue-500 bg-blue-50" : ""
+                    }`}
                 >
                   <p className="font-semibold">{c.participants?.data[0]?.username || "Unknown"}</p>
                   <p className="text-gray-500 text-sm">{c.snippet || "No recent message"}</p>
@@ -131,11 +204,10 @@ export default function InstagramDMs() {
                   messages.map((m) => (
                     <div
                       key={m.id}
-                      className={`p-3 rounded-xl max-w-[80%] break-words ${
-                        m.from?.id === instagramBusinessId
-                          ? "bg-blue-100 self-end text-right"
-                          : "bg-gray-100 self-start"
-                      }`}
+                      className={`p-3 rounded-xl max-w-[80%] break-words ${m.from?.id === instagramBusinessId
+                        ? "bg-blue-100 self-end text-right"
+                        : "bg-gray-100 self-start"
+                        }`}
                     >
                       <p className="text-sm">{m.text}</p>
                       <p className="text-xs text-gray-400 mt-1">{new Date(m.timestamp).toLocaleString()}</p>
