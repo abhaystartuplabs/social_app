@@ -76,10 +76,6 @@ export default function PageDMs() {
         }
     };
 
-    useEffect(() => {
-        fetchFBConversations()
-    }, [])
-
     // Fetch messages
     const fetchMessages = async (conversationId) => {
         if (!fbPage) return;
@@ -134,6 +130,7 @@ export default function PageDMs() {
         }
     };
 
+
     if (status === "loading") return <p className="text-center mt-10">Loading session...</p>;
 
     if (!session)
@@ -149,6 +146,10 @@ export default function PageDMs() {
                 <h1 className="text-3xl font-bold mb-6">Page & Instagram DMs</h1>
 
                 {error && <p className="text-red-500 mb-4">{error}</p>}
+
+                <div className="flex space-x-4 mb-6">
+                    <button onClick={fetchFBConversations} className="bg-blue-600 text-white px-5 py-2 rounded hover:bg-blue-700">Load Facebook DMs</button>
+                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Conversations */}
@@ -209,8 +210,8 @@ export default function PageDMs() {
                                                 <div
                                                     key={m.id}
                                                     className={`max-w-[80%] p-3 rounded-xl break-words flex flex-col ${isPageMessage
-                                                        ? "self-end bg-blue-100 text-right"
-                                                        : "self-start bg-gray-100 text-left"
+                                                            ? "self-end bg-blue-100 text-right"
+                                                            : "self-start bg-gray-100 text-left"
                                                         }`}
                                                 >
                                                     {!isPageMessage && (
