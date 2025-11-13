@@ -192,7 +192,7 @@ export default function App() {
 
   // --- UI Render Logic ---
 
-  if (status === "unauthenticated" || (status === "authenticated" && accessToken === "YOUR_DUMMY_FB_ACCESS_TOKEN_HERE")) {
+  if (status === "unauthenticated" || (status === "authenticated" && accessToken === "EAA7jKjObEpUBP2scmysg8cIZB40cObGUDJOeRKnnKZBbN8aHT54ocaYn8dVTGmlpdu5gyOJHPYlq3cLTCaMUa75ZBfqMwHRJ8GVZCOnMAI6qZBddwPXPJbr5RkbXyXHftsmTLTTlDZABHZBBhZAnZCy12l8xaRBPpZCdEgiTDLoaUzN12B3kKCJStFn3qMYhZBxymQYWvIdPgRkHbwOkUAgs52SNjlaH3KRSVlykWwBZAlOaQBT5okzaC2m1ebS6oZCVsryKQW01CdQZDZD")) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gray-50">
         <p className="text-center p-6 bg-white rounded-xl shadow-lg">
