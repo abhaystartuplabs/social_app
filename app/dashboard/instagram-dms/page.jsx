@@ -367,9 +367,6 @@ export default function InstagramDMs() {
                   <p className="text-gray-500 text-xs italic">
                     Updated: {c.updated_time ? new Date(c.updated_time).toLocaleString() : 'No time'}
                   </p>
-                  <p className="text-gray-500 text-sm italic truncate">
-                    Snippet: {c.snippet || "N/A"}
-                  </p>
                 </div>
               ))
             )}
