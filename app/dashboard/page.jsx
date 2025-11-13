@@ -222,7 +222,7 @@ export default function Dashboard() {
       });
 
       const res = await axios.post(
-        `https://graph.facebook.com/v23.0/${instagramBusinessId}/messages`,
+        `https://graph.instagram.com/v23.0/${instagramBusinessId}/messages`,
         {
           recipient: { comment_id: commentId },
           message: { text: message },
