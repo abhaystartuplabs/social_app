@@ -1,12 +1,9 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { useSession } from "next-auth/react";
+import { useState, useRef } from "react";
 import axios from "axios";
 
 export default function InstagramDMs() {
-  const { data: session, status } = useSession();
-  const [instagramBusinessId, setInstagramBusinessId] = useState(null);
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -14,156 +11,76 @@ export default function InstagramDMs() {
   const [error, setError] = useState(null);
   const messagesEndRef = useRef(null);
 
-  const accessToken = "lGAAMOQ8i2B2JBZAFRJMjJWaTVNd1N6RnpFVHJVS19uRTc2Rl9DLXJJVk1hRXVUbVZAINFNUVTBWbm5xRHZAISnZAxRHhid09aU2RJX3RRbURiOEd3TTVmY3N0eW1rcE1wbmROMVFtTEVNaDlqWmFadkpaam5oWVNGcmpleXVkSnd0UQZDZD"
+  // ✅ Use your working token
+  const accessToken =
+    "IGAAMOQ8i2B2JBZAFRJMjJWaTVNd1N6RnpFVHJVS19uRTc2Rl9DLXJJVk1hRXVUbVZAINFNUVTBWbm5xRHZAISnZAxRHhid09aU2RJX3RRbURiOEd3TTVmY3N0eW1rcE1wbmROMVFtTEVNaDlqWmFadkpaam5oWVNGcmpleXVkSnd0UQZDZD";
 
-  // const accessToken = session?.accessToken;
+  const BASE_URL = "https://graph.instagram.com/v24.0";
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // Fetch connected Instagram Business Account ID
-  useEffect(() => {
-    const getIGBusinessId = async () => {
-      try {
-        const res = await axios.get(
-          `https://graph.facebook.com/v21.0/me/accounts?access_token=${accessToken}`
-        );
-
-        // Assuming user has only one connected Page with IG
-        const page = res.data.data[0];
-        if (page) {
-          const igRes = await axios.get(
-            `https://graph.facebook.com/v21.0/${page.id}?fields=instagram_business_account&access_token=${accessToken}`
-          );
-          const igId = igRes.data.instagram_business_account?.id;
-          if (igId) setInstagramBusinessId(igId);
-          console.log("✅ Found Instagram Business ID:", igId);
-        }
-      } catch (err) {
-        console.error("Error fetching Instagram Business ID:", err.response?.data || err);
-        setError("Failed to fetch Instagram Business Account.");
-      }
-    };
-
-    if (accessToken) getIGBusinessId();
-  }, [accessToken]);
-
-  // Fetch Instagram Business Account ID from connected Facebook Page
-  useEffect(() => {
-    const getIGBusinessId = async () => {
-      if (!accessToken) return;
-      try {
-        const res = await axios.get(
-          `https://graph.facebook.com/v21.0/me/accounts?access_token=${accessToken}`
-        );
-        console.log("🔹 Pages Data:", res.data);
-        const page = res.data.data?.[0];
-        if (!page) {
-          setError("No Facebook Page linked to this account.");
-          return;
-        }
-
-        const igRes = await axios.get(
-          `https://graph.facebook.com/v21.0/${page.id}?fields=instagram_business_account&access_token=${accessToken}`
-        );
-        console.log("🔹 IG Business Account Data:", igRes.data);
-        const igId = igRes.data.instagram_business_account?.id;
-        if (igId) {
-          setInstagramBusinessId(igId);
-          console.log("✅ Instagram Business ID:", igId);
-        } else {
-          setError("No Instagram Business Account found for this Page.");
-        }
-      } catch (err) {
-        console.error("❌ Error fetching IG Business Account:", err.response?.data || err);
-        setError(err.response?.data?.error?.message || "Failed to fetch Instagram Business Account.");
-      }
-    };
-
-    getIGBusinessId();
-  }, [accessToken]);
-
-
-  // Fetch DM conversations
+  // ✅ Fetch conversations from Instagram Graph API
   const fetchConversations = async () => {
-    if (!instagramBusinessId) return;
     try {
-      const res = await axios.get(
-        `https://graph.facebook.com/v21.0/conversations`,
-        {
-          params: { access_token: accessToken, fields: "id,participants,snippet" },
-        }
-      );
+      const res = await axios.get(`${BASE_URL}/me/conversations`, {
+        params: { access_token: accessToken, platform: "instagram" },
+      });
       setConversations(res.data.data || []);
+      setError(null);
     } catch (err) {
       console.error("Error fetching conversations:", err.response?.data || err);
       setError(err.response?.data?.error?.message || "Failed to fetch conversations.");
     }
   };
 
-  // Fetch messages in a conversation
+  // ✅ Fetch messages in selected conversation
   const fetchMessages = async (conversationId) => {
     try {
-      const res = await axios.get(
-        `https://graph.facebook.com/v21.0/${conversationId}/messages`,
-        {
-          params: { access_token: accessToken, fields: "id,text,from,timestamp" },
-        }
-      );
-      setMessages(res.data.data || []);
+      const res = await axios.get(`${BASE_URL}/${conversationId}`, {
+        params: { fields: "messages", access_token: accessToken },
+      });
+      setMessages(res.data.messages?.data || []);
       setSelectedConversation(conversationId);
       setTimeout(scrollToBottom, 100);
+      setError(null);
     } catch (err) {
       console.error("Error fetching messages:", err.response?.data || err);
-      console.group("📩 API Error Debug");
-      console.log("Endpoint:", err.config?.url);
-      console.log("Params:", err.config?.params);
-      console.log("Response:", err.response?.data || err.message);
-      console.groupEnd();
       setError(err.response?.data?.error?.message || "Failed to fetch messages.");
     }
   };
 
-  // Send a reply
+  // ✅ Send DM reply (requires comment_id if replying to a comment)
   const sendMessage = async () => {
     if (!dmReply.trim()) return alert("Message cannot be empty");
+    if (!selectedConversation) return alert("Select a conversation first");
+
     try {
       await axios.post(
-        `https://graph.facebook.com/v21.0/${selectedConversation}/messages`,
-        null,
-        { params: { message: dmReply, access_token: accessToken } }
+        `${BASE_URL}/${selectedConversation}/messages`,
+        {
+          message: { text: dmReply },
+        },
+        {
+          headers: { "Content-Type": "application/json" },
+          params: { access_token: accessToken },
+        }
       );
 
       setDmReply("");
-      fetchMessages(selectedConversation); // Refresh messages
+      fetchMessages(selectedConversation); // refresh
+      setError(null);
     } catch (err) {
       console.error("Error sending message:", err.response?.data || err);
-      console.group("📩 API Error Debug");
-      console.log("Endpoint:", err.config?.url);
-      console.log("Params:", err.config?.params);
-      console.log("Response:", err.response?.data || err.message);
-      console.groupEnd();
-      alert(err.response?.data?.error?.message || "Failed to send message.");
+      setError(err.response?.data?.error?.message || "Failed to send message.");
     }
   };
-
-  if (status === "loading") return <p className="text-center mt-10">Loading session...</p>;
-  if (!session)
-    return (
-      <p className="text-center mt-10">
-        Please{" "}
-        <a href="/" className="text-blue-600 underline">
-          log in
-        </a>{" "}
-        first.
-      </p>
-    );
 
   return (
     <main className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6">Instagram DMs</h1>
+        <h1 className="text-3xl font-bold mb-6">Instagram DMs (Direct via Graph API)</h1>
 
         {error && <p className="text-red-500 mb-4">{error}</p>}
 
@@ -175,21 +92,25 @@ export default function InstagramDMs() {
         </button>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Conversations List */}
+          {/* Conversations */}
           <div className="bg-white p-4 rounded-xl shadow space-y-2 max-h-[70vh] overflow-y-auto">
             <h2 className="text-xl font-semibold mb-3">Conversations</h2>
             {conversations.length === 0 ? (
               <p className="text-gray-500">No conversations found.</p>
             ) : (
-              conversations.map((c) => (
+              conversations.map((conv) => (
                 <div
-                  key={c.id}
-                  onClick={() => fetchMessages(c.id)}
-                  className={`cursor-pointer p-3 border rounded hover:bg-gray-50 ${selectedConversation === c.id ? "border-blue-500 bg-blue-50" : ""
-                    }`}
+                  key={conv.id}
+                  onClick={() => fetchMessages(conv.id)}
+                  className={`cursor-pointer p-3 border rounded hover:bg-gray-50 ${
+                    selectedConversation === conv.id ? "border-blue-500 bg-blue-50" : ""
+                  }`}
                 >
-                  <p className="font-semibold">{c.participants?.data[0]?.username || "Unknown"}</p>
-                  <p className="text-gray-500 text-sm">{c.snippet || "No recent message"}</p>
+                  <p className="font-semibold">Conversation ID:</p>
+                  <p className="text-sm break-all text-gray-600">{conv.id}</p>
+                  <p className="text-xs text-gray-400">
+                    Updated: {new Date(conv.updated_time).toLocaleString()}
+                  </p>
                 </div>
               ))
             )}
@@ -201,23 +122,25 @@ export default function InstagramDMs() {
               <h2 className="text-xl font-semibold mb-4">Messages</h2>
               <div className="flex-1 overflow-y-auto space-y-2">
                 {messages.length === 0 ? (
-                  <p className="text-gray-500">No messages in this conversation.</p>
+                  <p className="text-gray-500">No messages yet.</p>
                 ) : (
-                  messages.map((m) => (
+                  messages.map((msg) => (
                     <div
-                      key={m.id}
-                      className={`p-3 rounded-xl max-w-[80%] break-words ${m.from?.id === instagramBusinessId
-                        ? "bg-blue-100 self-end text-right"
-                        : "bg-gray-100 self-start"
-                        }`}
+                      key={msg.id}
+                      className={`p-3 rounded-xl max-w-[80%] break-words ${
+                        msg.is_unsupported ? "bg-gray-200 text-gray-500" : "bg-blue-100"
+                      }`}
                     >
-                      <p className="text-sm">{m.text}</p>
-                      <p className="text-xs text-gray-400 mt-1">{new Date(m.timestamp).toLocaleString()}</p>
+                      <p className="text-sm">{msg.message || "Media or unsupported content"}</p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        {new Date(msg.created_time).toLocaleString()}
+                      </p>
                     </div>
                   ))
                 )}
                 <div ref={messagesEndRef} />
               </div>
+
               <div className="flex space-x-2 mt-2">
                 <input
                   type="text"
