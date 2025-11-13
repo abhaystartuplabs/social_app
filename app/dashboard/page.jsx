@@ -295,42 +295,41 @@ export default function Dashboard() {
                     </div>
                 </div>
 
-
+                {/* Error */}
                 {error && <p className="text-red-500 mb-4">{error}</p>}
 
-
                 {/* Profile Info and Permissions */}
-                <div className="max-w-4xl mx-auto">
+                <div className="max-w-6xl mx-auto flex flex-col md:flex-row gap-6 p-4">
 
-                    {/* Profile Info */}
+                    {/* Left Side - Profile Card */}
                     {account && (
-                        <div className="bg-white p-6 rounded-xl shadow-md flex flex-col md:flex-row items-center md:items-start space-y-4 md:space-y-0 md:space-x-6 mb-8">
+                        <div className="w-full md:w-1/2 bg-white p-6 rounded-xl shadow-md flex flex-col items-center md:items-start space-y-4">
                             <img
                                 src={account.profile_picture_url}
                                 alt="Profile"
-                                className="w-24 h-24 rounded-full border-2 border-gray-200 object-cover"
+                                className="w-28 h-28 rounded-full border-2 border-gray-200 object-cover mb-2"
                             />
                             <div className="text-center md:text-left">
                                 <h2 className="text-2xl font-bold">@{account.username}</h2>
                                 {account.name && <p className="text-gray-700">{account.name}</p>}
                                 <p className="text-sm text-gray-500 mt-1">
-                                    Followers: <span className="font-medium">{account.followers_count}</span> |
-                                    Following: <span className="font-medium">{account.follows_count}</span> |
+                                    Followers: <span className="font-medium">{account.followers_count}</span> |{" "}
+                                    Following: <span className="font-medium">{account.follows_count}</span> |{" "}
                                     Posts: <span className="font-medium">{account.media_count}</span>
                                 </p>
                             </div>
                         </div>
                     )}
 
-                    {/* Token Permissions */}
+                    {/* Right Side - Token Permissions */}
                     {permissions.length > 0 && (
-                        <div className="bg-yellow-50 p-5 rounded-xl shadow-md mb-8">
-                            <h2 className="text-lg font-semibold mb-3">Your Token Permissions</h2>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div className="w-full md:w-1/2 bg-yellow-50 p-5 rounded-xl shadow-md overflow-y-auto max-h-[400px]">
+                            <h2 className="text-lg font-semibold mb-4 text-gray-800">Your Token Permissions</h2>
+                            <div className="grid grid-cols-1 gap-2">
                                 {permissions.map((p) => (
                                     <div
                                         key={p.permission}
-                                        className="flex justify-between bg-yellow-100 rounded-md px-3 py-2 text-sm font-medium text-yellow-800 shadow-sm"
+                                        className="flex justify-between bg-yellow-100 rounded-md px-4 py-2 text-sm font-medium text-yellow-900 shadow-sm"
                                     >
                                         <span>{p.permission}</span>
                                         <span className={p.status === "granted" ? "text-green-600" : "text-red-600"}>
@@ -343,7 +342,6 @@ export default function Dashboard() {
                     )}
 
                 </div>
-
 
                 {/* Create Post */}
                 <div className="bg-white p-6 rounded-xl shadow mb-8">
