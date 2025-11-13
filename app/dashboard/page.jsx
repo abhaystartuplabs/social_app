@@ -209,7 +209,7 @@ export default function Dashboard() {
     };
 
     if (status === "loading") return <p>Loading session...</p>;
-    
+
     if (!session)
         return (
             <p className="text-center mt-10">
@@ -303,7 +303,7 @@ export default function Dashboard() {
                 <div className="max-w-6xl mx-auto flex flex-col md:flex-row gap-6 p-4">
 
                     {/* Left Side - Profile Card */}
-                    {account && (
+                    {account ? (
                         <div className="w-full md:w-1/2 bg-white p-6 rounded-xl shadow-md flex flex-col items-center md:items-start space-y-4">
                             <img
                                 src={account.profile_picture_url}
@@ -319,8 +319,14 @@ export default function Dashboard() {
                                     Posts: <span className="font-medium">{account.media_count}</span>
                                 </p>
                             </div>
+                            <div className="w-full bg-gray-50 border border-gray-200 p-3 rounded text-sm text-gray-700 overflow-x-auto">
+                                <p className="font-medium mb-1">Access Token:</p>
+                                <code className="block text-xs break-all text-gray-800">
+                                    {session.accessToken || "Token not available."}
+                                </code>
+                            </div>
                         </div>
-                    )}
+                    ) : <div className="w-full h-full"><p>Loading...</p></div>}
 
                     {/* Right Side - Token Permissions */}
                     {permissions.length > 0 && (
