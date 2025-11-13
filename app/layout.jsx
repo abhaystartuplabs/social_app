@@ -5,8 +5,8 @@ import { Providers } from './providers';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
-  title: 'NextAuth Instagram Login',
-  description: 'Login with Instagram using Next.js App Router and Auth.js',
+  title: 'Facebook Business Account',
+  description: 'Managing Facebook and Instagram profiles using Next.js App Router and Auth.js',
 };
 
 // The Root Layout is a Server Component by default.

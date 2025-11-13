@@ -209,6 +209,7 @@ export default function Dashboard() {
     };
 
     if (status === "loading") return <p>Loading session...</p>;
+    
     if (!session)
         return (
             <p className="text-center mt-10">
