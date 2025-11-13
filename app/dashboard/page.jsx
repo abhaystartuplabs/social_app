@@ -20,12 +20,11 @@ export default function Dashboard() {
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
     const [insights, setInsights] = useState([]);
-    const [replyType, setReplyType] = useState("public");
     const [replyText, setReplyText] = useState({});
+    const [pageAccessToken, setPageAccessToken] = useState(null);
     const router = useRouter()
 
     const accessToken = session?.accessToken;
-    console.log("accessToken:-", accessToken)
 
     const timeAgo = (timestamp) => {
         const diff = (new Date() - new Date(timestamp)) / 1000;
@@ -34,6 +33,34 @@ export default function Dashboard() {
         if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
         return `${Math.floor(diff / 86400)}d ago`;
     };
+
+    
+
+    useEffect(() => {
+        if (!session?.accessToken) return;
+
+        const getPageAccessToken = async () => {
+            try {
+                const res = await axios.get(`https://graph.facebook.com/v21.0/me/accounts`, {
+                    params: { access_token: session.accessToken },
+                });
+
+                if (res.data?.data?.length > 0) {
+                    // Get first page's token (or add UI to select)
+                    const page = res.data.data[0];
+                    setPageAccessToken(page.access_token);
+                    console.log("✅ Page Access Token:", page.access_token);
+                } else {
+                    console.error("⚠️ No connected pages found.");
+                }
+            } catch (err) {
+                console.error("❌ Error getting page access token:", err.response?.data || err);
+            }
+        };
+
+        getPageAccessToken();
+    }, [session?.accessToken]);
+
 
     // Fetch connected Instagram Business account
     useEffect(() => {
@@ -153,21 +180,6 @@ export default function Dashboard() {
     }, [accessToken, status]);
 
     // Reply to comment
-    // const postReply = async (commentId) => {
-    //     if (!reply) return alert("Reply cannot be empty");
-    //     try {
-    //         await axios.post(`https://graph.facebook.com/v21.0/${commentId}/replies`, null, {
-    //             params: { message: reply, access_token: accessToken },
-    //         });
-    //         setReply("");
-    //         fetchComments(modalPost);
-    //         alert("✅ Reply posted!");
-    //     } catch (err) {
-    //         console.error("Error replying to comment:", err.response?.data || err);
-    //         alert("❌ Failed to reply. Check permissions for `instagram_manage_comments`.");
-    //     }
-    // };
-
     const postReply = async (commentId, message, type = "public") => {
         if (!message?.trim()) return alert("Please enter a reply.");
 
@@ -191,7 +203,7 @@ export default function Dashboard() {
                     },
                     {
                         headers: { "Content-Type": "application/json" },
-                        params: { access_token: accessToken },
+                        params: { access_token: pageAccessToken },
                     }
                 );
                 alert("✅ Private message sent!");
@@ -205,8 +217,6 @@ export default function Dashboard() {
             alert(`❌ Failed to send ${type} reply. Check permissions or API access.`);
         }
     };
-
-
 
     // Fetch insights
     const fetchInsights = async (postId) => {
