@@ -103,6 +103,8 @@ export default function Dashboard() {
             });
 
             setComments(res.data.data || []);
+            console.log("Comment of Post:-",res)
+            console.log("Post Id:-",postId)
             setModalPost(postId);
             setModalType("comments");
         } catch (err) {
