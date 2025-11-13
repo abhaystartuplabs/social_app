@@ -224,68 +224,79 @@ export default function Dashboard() {
         <main className="min-h-screen bg-gray-50 p-6">
             <div className="max-w-6xl mx-auto">
                 {/* Header */}
-                <div className="flex justify-between items-center mb-6">
-                    <h1 className="text-3xl font-bold">Instagram Dashboard</h1>
-                    <button
-                        onClick={() => signOut()}
-                        className="bg-red-500 text-white px-4 py-2 rounded-lg"
-                    >
-                        Sign Out
-                    </button>
+                <div className="flex justify-between items-center mb-6 w-full">
+                    {/* Left side - User Name */}
+                    <div className="w-1/2">
+                        <h1 className="text-3xl font-bold">
+                            Instagram Dashboard
+                        </h1>
+                        {session?.user?.name && (
+                            <p className="text-gray-600 mt-1 text-lg">
+                                Welcome, {session.user.name}!
+                            </p>
+                        )}
+                    </div>
+
+                    {/* Right side - Buttons */}
+                    <div className="w-1/2 flex flex-col sm:flex-row sm:justify-end gap-4">
+                        {/* Instagram DM Button */}
+                        <button
+                            onClick={() => router.push('/dashboard/instagram-dms')}
+                            className="flex-1 bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 py-3 rounded-xl shadow-lg hover:shadow-xl 
+                 transform hover:-translate-y-1 transition-all duration-300 flex items-center justify-center space-x-2"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-5 w-5"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M7 8h10M7 12h4m1 8l-5-5H5a2 2 0 01-2-2V7a2 2 0 012-2h14a2 2 0 012 2v6a2 2 0 01-2 2h-3l-5 5z"
+                                />
+                            </svg>
+                            <span className="font-medium text-center">Instagram DM's</span>
+                        </button>
+
+                        {/* Facebook DM Button */}
+                        <button
+                            onClick={() => router.push('/dashboard/facebook-dms')}
+                            className="flex-1 bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 py-3 rounded-xl shadow-lg hover:shadow-xl 
+                 transform hover:-translate-y-1 transition-all duration-300 flex items-center justify-center space-x-2"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-5 w-5"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M7 8h10M7 12h4m1 8l-5-5H5a2 2 0 01-2-2V7a2 2 0 012-2h14a2 2 0 012 2v6a2 2 0 01-2 2h-3l-5 5z"
+                                />
+                            </svg>
+                            <span className="font-medium text-center">Facebook DM's</span>
+                        </button>
+
+                        {/* Sign Out Button */}
+                        <button
+                            onClick={() => signOut()}
+                            className="flex-1 bg-red-500 text-white px-4 py-3 rounded-xl shadow-lg hover:bg-red-600 transition-all duration-300"
+                        >
+                            Sign Out
+                        </button>
+                    </div>
                 </div>
+
 
                 {error && <p className="text-red-500 mb-4">{error}</p>}
-
-                {/* Navigate to Instagram and Facebook DM's */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    {/* Instagram DM Button */}
-                    <div
-                        onClick={() => router.push('/dashboard/instagram-dms')}
-                        className="cursor-pointer bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-6 py-4 rounded-xl shadow-lg 
-               hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 
-               flex items-center justify-center space-x-3"
-                    >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-6 w-6"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M7 8h10M7 12h4m1 8l-5-5H5a2 2 0 01-2-2V7a2 2 0 012-2h14a2 2 0 012 2v6a2 2 0 01-2 2h-3l-5 5z"
-                            />
-                        </svg>
-                        <span className="font-medium text-lg text-center">View Instagram DM's</span>
-                    </div>
-
-                    {/* Facebook DM Button */}
-                    <div
-                        onClick={() => router.push('/dashboard/facebook-dms')}
-                        className="cursor-pointer bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-6 py-4 rounded-xl shadow-lg 
-               hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 
-               flex items-center justify-center space-x-3"
-                    >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-6 w-6"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M7 8h10M7 12h4m1 8l-5-5H5a2 2 0 01-2-2V7a2 2 0 012-2h14a2 2 0 012 2v6a2 2 0 01-2 2h-3l-5 5z"
-                            />
-                        </svg>
-                        <span className="font-medium text-lg text-center">View Facebook DM's</span>
-                    </div>
-                </div>
 
 
                 {/* Profile Info and Permissions */}
