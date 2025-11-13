@@ -25,8 +25,8 @@ export default function Dashboard() {
     const router = useRouter()
 
     const accessToken = session?.accessToken;
-    console.log("pageAccessToken:-",pageAccessToken)
-    console.log("replyText:-",replyText)
+    console.log("pageAccessToken:-", pageAccessToken)
+    console.log("replyText:-", replyText)
 
     const timeAgo = (timestamp) => {
         const diff = (new Date() - new Date(timestamp)) / 1000;
@@ -180,79 +180,79 @@ export default function Dashboard() {
 
     // Reply to comment
     const postReply = async (commentId, message, type = "public") => {
-  if (!message?.trim()) {
-    console.warn("⚠️ Empty message, skipping reply.");
-    return alert("Please enter a reply.");
-  }
+        if (!message?.trim()) {
+            console.warn("⚠️ Empty message, skipping reply.");
+            return alert("Please enter a reply.");
+        }
 
-  console.log("🟦 postReply Triggered:", {
-    commentId,
-    message,
-    type,
-    instagramBusinessId,
-    accessToken: accessToken?.slice(0, 15) + "...",
-    pageAccessToken: pageAccessToken?.slice(0, 15) + "...",
-  });
-
-  try {
-    if (type === "public") {
-      console.log("🌐 Sending PUBLIC reply:", {
-        endpoint: `https://graph.facebook.com/v23.0/${commentId}/replies`,
-        tokenUsed: "accessToken",
-      });
-
-      const res = await axios.post(
-        `https://graph.facebook.com/v23.0/${commentId}/replies`,
-        null,
-        {
-          params: {
+        console.log("🟦 postReply Triggered:", {
+            commentId,
             message,
-            access_token: accessToken,
-          },
+            type,
+            instagramBusinessId,
+            accessToken: accessToken?.slice(0, 15) + "...",
+            pageAccessToken: pageAccessToken?.slice(0, 15) + "...",
+        });
+
+        try {
+            if (type === "public") {
+                console.log("🌐 Sending PUBLIC reply:", {
+                    endpoint: `https://graph.facebook.com/v23.0/${commentId}/replies`,
+                    tokenUsed: "accessToken",
+                });
+
+                const res = await axios.post(
+                    `https://graph.facebook.com/v23.0/${commentId}/replies`,
+                    null,
+                    {
+                        params: {
+                            message,
+                            access_token: accessToken,
+                        },
+                    }
+                );
+
+                console.log("✅ Public reply response:", res.data);
+                alert("✅ Public reply sent!");
+            } else {
+                console.log("📩 Sending PRIVATE reply:", {
+                    endpoint: `https://graph.instagram.com/v23.0/${instagramBusinessId}/messages`,
+                    tokenUsed: "pageAccessToken",
+                    recipient_comment_id: commentId,
+                });
+
+                const res = await axios.post(
+                    `https://graph.instagram.com/v23.0/${instagramBusinessId}/messages`,
+                    {
+                        recipient: { comment_id: commentId },
+                        message: { text: message },
+                    },
+                    {
+                        headers: { "Content-Type": "application/json" },
+                        params: { access_token: 'IGAAMOQ8i2B2JBZAFRJMjJWaTVNd1N6RnpFVHJVS19uRTc2Rl9DLXJJVk1hRXVUbVZAINFNUVTBWbm5xRHZAISnZAxRHhid09aU2RJX3RRbURiOEd3TTVmY3N0eW1rcE1wbmROMVFtTEVNaDlqWmFadkpaam5oWVNGcmpleXVkSnd0UQZDZD' },
+                        //   params: { access_token: pageAccessToken },
+                    }
+                );
+
+                console.log("✅ Private reply response:", res.data);
+                alert("✅ Private message sent!");
+            }
+
+            // Clear the reply input
+            setReplyText((prev) => ({ ...prev, [commentId]: "" }));
+            console.log("🧹 Cleared reply input for comment:", commentId);
+
+            // Refresh comments
+            fetchComments(modalPost);
+        } catch (err) {
+            console.error("❌ Reply Error Details:", {
+                message: err.message,
+                response: err.response?.data,
+                stack: err.stack,
+            });
+            alert(`❌ Failed to send ${type} reply. Check permissions or API access.`);
         }
-      );
-
-      console.log("✅ Public reply response:", res.data);
-      alert("✅ Public reply sent!");
-    } else {
-      console.log("📩 Sending PRIVATE reply:", {
-        endpoint: `https://graph.instagram.com/v23.0/${instagramBusinessId}/messages`,
-        tokenUsed: "pageAccessToken",
-        recipient_comment_id: commentId,
-      });
-
-      const res = await axios.post(
-        `https://graph.instagram.com/v23.0/${instagramBusinessId}/messages`,
-        {
-          recipient: { comment_id: commentId },
-          message: { text: message },
-        },
-        {
-          headers: { "Content-Type": "application/json" },
-        //   params: { access_token: 'IGAAMOQ8i2B2JBZAFRJMjJWaTVNd1N6RnpFVHJVS19uRTc2Rl9DLXJJVk1hRXVUbVZAINFNUVTBWbm5xRHZAISnZAxRHhid09aU2RJX3RRbURiOEd3TTVmY3N0eW1rcE1wbmROMVFtTEVNaDlqWmFadkpaam5oWVNGcmpleXVkSnd0UQZDZD' },
-          params: { access_token: pageAccessToken },
-        }
-      );
-
-      console.log("✅ Private reply response:", res.data);
-      alert("✅ Private message sent!");
-    }
-
-    // Clear the reply input
-    setReplyText((prev) => ({ ...prev, [commentId]: "" }));
-    console.log("🧹 Cleared reply input for comment:", commentId);
-
-    // Refresh comments
-    fetchComments(modalPost);
-  } catch (err) {
-    console.error("❌ Reply Error Details:", {
-      message: err.message,
-      response: err.response?.data,
-      stack: err.stack,
-    });
-    alert(`❌ Failed to send ${type} reply. Check permissions or API access.`);
-  }
-};
+    };
 
     // Fetch insights
     const fetchInsights = async (postId) => {
@@ -548,12 +548,12 @@ export default function Dashboard() {
                                                         >
                                                             Public
                                                         </button>
-                                                        <button
+                                                        {/* <button
                                                             onClick={() => postReply(c.id, replyText[c.id], "private")}
                                                             className="bg-green-500 text-white px-3 py-2 rounded-md text-sm hover:bg-green-600"
                                                         >
                                                             Private
-                                                        </button>
+                                                        </button> */}
                                                     </div>
 
                                                     {/* Nested replies */}
