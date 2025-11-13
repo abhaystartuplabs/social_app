@@ -229,7 +229,8 @@ export default function Dashboard() {
         },
         {
           headers: { "Content-Type": "application/json" },
-          params: { access_token: 'IGAAMOQ8i2B2JBZAFRJMjJWaTVNd1N6RnpFVHJVS19uRTc2Rl9DLXJJVk1hRXVUbVZAINFNUVTBWbm5xRHZAISnZAxRHhid09aU2RJX3RRbURiOEd3TTVmY3N0eW1rcE1wbmROMVFtTEVNaDlqWmFadkpaam5oWVNGcmpleXVkSnd0UQZDZD' },
+        //   params: { access_token: 'IGAAMOQ8i2B2JBZAFRJMjJWaTVNd1N6RnpFVHJVS19uRTc2Rl9DLXJJVk1hRXVUbVZAINFNUVTBWbm5xRHZAISnZAxRHhid09aU2RJX3RRbURiOEd3TTVmY3N0eW1rcE1wbmROMVFtTEVNaDlqWmFadkpaam5oWVNGcmpleXVkSnd0UQZDZD' },
+          params: { access_token: pageAccessToken },
         }
       );
 
