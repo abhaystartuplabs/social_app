@@ -222,14 +222,14 @@ export default function Dashboard() {
       });
 
       const res = await axios.post(
-        `https://graph.instagram.com/v23.0/${instagramBusinessId}/messages`,
+        `https://graph.facebook.com/v23.0/${instagramBusinessId}/messages`,
         {
           recipient: { comment_id: commentId },
           message: { text: message },
         },
         {
           headers: { "Content-Type": "application/json" },
-          params: { access_token: pageAccessToken },
+          params: { access_token: 'IGAAMOQ8i2B2JBZAFRJMjJWaTVNd1N6RnpFVHJVS19uRTc2Rl9DLXJJVk1hRXVUbVZAINFNUVTBWbm5xRHZAISnZAxRHhid09aU2RJX3RRbURiOEd3TTVmY3N0eW1rcE1wbmROMVFtTEVNaDlqWmFadkpaam5oWVNGcmpleXVkSnd0UQZDZD' },
         }
       );
 
