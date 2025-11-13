@@ -88,7 +88,7 @@ export default function InstagramDMs() {
     if (!instagramBusinessId) return;
     try {
       const res = await axios.get(
-        `https://graph.facebook.com/v21.0/${instagramBusinessId}/conversations`,
+        `https://graph.facebook.com/v21.0/conversations`,
         {
           params: { access_token: accessToken, fields: "id,participants,snippet" },
         }
