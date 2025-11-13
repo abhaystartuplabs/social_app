@@ -25,6 +25,8 @@ export default function Dashboard() {
     const router = useRouter()
 
     const accessToken = session?.accessToken;
+    console.log("pageAccessToken:-",pageAccessToken)
+    console.log("replyText:-",replyText)
 
     const timeAgo = (timestamp) => {
         const diff = (new Date() - new Date(timestamp)) / 1000;
@@ -33,8 +35,6 @@ export default function Dashboard() {
         if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
         return `${Math.floor(diff / 86400)}d ago`;
     };
-
-    
 
     useEffect(() => {
         if (!session?.accessToken) return;
@@ -60,7 +60,6 @@ export default function Dashboard() {
 
         getPageAccessToken();
     }, [session?.accessToken]);
-
 
     // Fetch connected Instagram Business account
     useEffect(() => {
@@ -181,42 +180,78 @@ export default function Dashboard() {
 
     // Reply to comment
     const postReply = async (commentId, message, type = "public") => {
-        if (!message?.trim()) return alert("Please enter a reply.");
+  if (!message?.trim()) {
+    console.warn("⚠️ Empty message, skipping reply.");
+    return alert("Please enter a reply.");
+  }
 
-        try {
-            if (type === "public") {
-                // Public reply
-                await axios.post(`https://graph.facebook.com/v23.0/${commentId}/replies`, null, {
-                    params: {
-                        message,
-                        access_token: accessToken,
-                    },
-                });
-                alert("✅ Public reply sent!");
-            } else {
-                // Private reply
-                await axios.post(
-                    `https://graph.facebook.com/v23.0/${instagramBusinessId}/messages`,
-                    {
-                        recipient: { comment_id: commentId },
-                        message: { text: message },
-                    },
-                    {
-                        headers: { "Content-Type": "application/json" },
-                        params: { access_token: pageAccessToken },
-                    }
-                );
-                alert("✅ Private message sent!");
-            }
+  console.log("🟦 postReply Triggered:", {
+    commentId,
+    message,
+    type,
+    instagramBusinessId,
+    accessToken: accessToken?.slice(0, 15) + "...",
+    pageAccessToken: pageAccessToken?.slice(0, 15) + "...",
+  });
 
-            // Clear the reply input
-            setReplyText((prev) => ({ ...prev, [commentId]: "" }));
-            fetchComments(modalPost); // Refresh comments
-        } catch (err) {
-            console.error("Reply Error:", err.response?.data || err);
-            alert(`❌ Failed to send ${type} reply. Check permissions or API access.`);
+  try {
+    if (type === "public") {
+      console.log("🌐 Sending PUBLIC reply:", {
+        endpoint: `https://graph.facebook.com/v23.0/${commentId}/replies`,
+        tokenUsed: "accessToken",
+      });
+
+      const res = await axios.post(
+        `https://graph.facebook.com/v23.0/${commentId}/replies`,
+        null,
+        {
+          params: {
+            message,
+            access_token: accessToken,
+          },
         }
-    };
+      );
+
+      console.log("✅ Public reply response:", res.data);
+      alert("✅ Public reply sent!");
+    } else {
+      console.log("📩 Sending PRIVATE reply:", {
+        endpoint: `https://graph.facebook.com/v23.0/${instagramBusinessId}/messages`,
+        tokenUsed: "pageAccessToken",
+        recipient_comment_id: commentId,
+      });
+
+      const res = await axios.post(
+        `https://graph.facebook.com/v23.0/${instagramBusinessId}/messages`,
+        {
+          recipient: { comment_id: commentId },
+          message: { text: message },
+        },
+        {
+          headers: { "Content-Type": "application/json" },
+          params: { access_token: pageAccessToken },
+        }
+      );
+
+      console.log("✅ Private reply response:", res.data);
+      alert("✅ Private message sent!");
+    }
+
+    // Clear the reply input
+    setReplyText((prev) => ({ ...prev, [commentId]: "" }));
+    console.log("🧹 Cleared reply input for comment:", commentId);
+
+    // Refresh comments
+    fetchComments(modalPost);
+  } catch (err) {
+    console.error("❌ Reply Error Details:", {
+      message: err.message,
+      response: err.response?.data,
+      stack: err.stack,
+    });
+    alert(`❌ Failed to send ${type} reply. Check permissions or API access.`);
+  }
+};
 
     // Fetch insights
     const fetchInsights = async (postId) => {
