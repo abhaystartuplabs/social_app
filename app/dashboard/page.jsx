@@ -546,7 +546,7 @@ export default function Dashboard() {
                                                             onClick={() => postReply(c.id, replyText[c.id], "public")}
                                                             className="bg-blue-500 text-white px-3 py-2 rounded-md text-sm hover:bg-blue-600"
                                                         >
-                                                            Public
+                                                            Reply
                                                         </button>
                                                         {/* <button
                                                             onClick={() => postReply(c.id, replyText[c.id], "private")}
@@ -575,7 +575,7 @@ export default function Dashboard() {
                                         </div>
 
                                     )}
-                                    <div className="mt-4">
+                                    {/* <div className="mt-4">
                                         <input
                                             type="text"
                                             placeholder="Write a reply..."
@@ -583,7 +583,7 @@ export default function Dashboard() {
                                             value={reply}
                                             onChange={(e) => setReply(e.target.value)}
                                         />
-                                    </div>
+                                    </div> */}
                                 </>
                             )}
 
