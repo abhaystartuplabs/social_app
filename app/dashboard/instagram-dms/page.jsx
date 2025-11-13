@@ -1,3 +1,4 @@
+'use client'
 import { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { Send, MessageSquare, Loader2, XCircle } from 'lucide-react';
@@ -8,14 +9,14 @@ import { Send, MessageSquare, Loader2, XCircle } from 'lucide-react';
 // !!! IMPORTANT !!! Replace "YOUR_DUMMY_FB_ACCESS_TOKEN_HERE" with a valid
 // Facebook Page Access Token that has 'instagram_basic' and 'instagram_manage_messages' scopes.
 const useSession = () => {
-  const DUMMY_ACCESS_TOKEN = "YOUR_DUMMY_FB_ACCESS_TOKEN_HERE"; 
+  const DUMMY_ACCESS_TOKEN = "EAA7jKjObEpUBP2scmysg8cIZB40cObGUDJOeRKnnKZBbN8aHT54ocaYn8dVTGmlpdu5gyOJHPYlq3cLTCaMUa75ZBfqMwHRJ8GVZCOnMAI6qZBddwPXPJbr5RkbXyXHftsmTLTTlDZABHZBBhZAnZCy12l8xaRBPpZCdEgiTDLoaUzN12B3kKCJStFn3qMYhZBxymQYWvIdPgRkHbwOkUAgs52SNjlaH3KRSVlykWwBZAlOaQBT5okzaC2m1ebS6oZCVsryKQW01CdQZDZD"; 
   
   return {
     data: {
       user: { name: "Mock User" },
       accessToken: DUMMY_ACCESS_TOKEN,
     },
-    status: DUMMY_ACCESS_TOKEN === "YOUR_DUMMY_FB_ACCESS_TOKEN_HERE" ? "unauthenticated" : "authenticated",
+    status: DUMMY_ACCESS_TOKEN === "EAA7jKjObEpUBP2scmysg8cIZB40cObGUDJOeRKnnKZBbN8aHT54ocaYn8dVTGmlpdu5gyOJHPYlq3cLTCaMUa75ZBfqMwHRJ8GVZCOnMAI6qZBddwPXPJbr5RkbXyXHftsmTLTTlDZABHZBBhZAnZCy12l8xaRBPpZCdEgiTDLoaUzN12B3kKCJStFn3qMYhZBxymQYWvIdPgRkHbwOkUAgs52SNjlaH3KRSVlykWwBZAlOaQBT5okzaC2m1ebS6oZCVsryKQW01CdQZDZD" ? "unauthenticated" : "authenticated",
   };
 };
 // --- END MOCK IMPLEMENTATION ---
