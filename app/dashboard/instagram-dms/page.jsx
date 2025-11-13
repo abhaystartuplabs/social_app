@@ -1,166 +1,352 @@
 "use client";
 
-import { useState, useRef } from "react";
-import axios from "axios";
+import React, { useEffect, useState, useRef, useCallback } from "react";
+
+// Using the Instagram Graph API base URL and version specified by the user.
+const API_BASE = "https://graph.instagram.com/v24.0"; 
+// Using the IGA... token provided by the user for immediate testing.
+const DEFAULT_TOKEN = "IGAAMOQ8i2B2JBZAFRJMjJWaTVNd1N6RnpFVHJVS19uRTc2Rl9DLXJJVk1hRXVUbVZAINFNUVTBWbm5xRHZAISnZAxRHhid09aU2RJX3RRbURiOEd3TTVmY3N0eW1rcE1wbmROMVFtTEVNaDlqWmFadkpaam5oWVNGcmpleXVkSnd0UQZDZD"; 
+
+
+// Custom utility to handle fetch, error parsing, and exponential backoff
+const handleApiCall = async (endpoint, params = {}, method = 'GET') => {
+  const query = new URLSearchParams(params).toString();
+  const fullUrl = `${API_BASE}/${endpoint}${query ? '?' + query : ''}`;
+
+  let response, data;
+  let delay = 1000;
+  const maxRetries = 3;
+
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+        response = await fetch(fullUrl, { method });
+        data = await response.json();
+
+        // Check for specific rate-limit/server errors that warrant a retry
+        if (response.status === 429 || response.status >= 500) {
+            if (i < maxRetries - 1) {
+                await new Promise(resolve => setTimeout(resolve, delay));
+                delay *= 2; // Exponential backoff
+                continue;
+            }
+        }
+
+        if (!response.ok || data.error) {
+          const errorMessage = data.error?.message || `HTTP error! Status: ${response.status}`;
+          console.error("API Error Response:", data.error || data);
+          throw new Error(errorMessage);
+        }
+        return data;
+    } catch (error) {
+        if (i < maxRetries - 1 && error.message.includes("Network")) {
+             await new Promise(resolve => setTimeout(resolve, delay));
+             delay *= 2; 
+             continue;
+        }
+        throw error;
+    }
+  }
+};
 
 export default function InstagramDMs() {
+  const [userToken, setUserToken] = useState(DEFAULT_TOKEN);
+  const [isTokenEntered, setIsTokenEntered] = useState(!!DEFAULT_TOKEN);
+  const [currentUserId, setCurrentUserId] = useState(null);
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [messages, setMessages] = useState([]);
-  const [dmReply, setDmReply] = useState("");
   const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+  
   const messagesEndRef = useRef(null);
-
-  // ✅ Use your working token
-  const accessToken =
-    "IGAAMOQ8i2B2JBZAFRJMjJWaTVNd1N6RnpFVHJVS19uRTc2Rl9DLXJJVk1hRXVUbVZAINFNUVTBWbm5xRHZAISnZAxRHhid09aU2RJX3RRbURiOEd3TTVmY3N0eW1rcE1wbmROMVFtTEVNaDlqWmFadkpaam5oWVNGcmpleXVkSnd0UQZDZD";
-
-  const BASE_URL = "https://graph.instagram.com/v24.0";
+  const accessToken = userToken;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // ✅ Fetch conversations from Instagram Graph API
-  const fetchConversations = async () => {
+  // Helper to fetch details for a single message (API Call 3)
+  const fetchMessageDetails = useCallback(async (messageId) => {
     try {
-      const res = await axios.get(`${BASE_URL}/me/conversations`, {
-        params: { access_token: accessToken, platform: "instagram" },
-      });
-      setConversations(res.data.data || []);
-      setError(null);
+        const details = await handleApiCall(
+            messageId,
+            { 
+                access_token: accessToken,
+                fields: "id,created_time,from,to,message,shares,attachments"
+            }
+        );
+        // The API returns 'message' for text content, or fields like 'shares'/'attachments'
+        const textContent = details.message || (
+            details.shares ? "[Shared Content]" : 
+            details.attachments ? "[Media Attachment]" : 
+            "[Unsupported Content]"
+        );
+
+        return {
+            ...details,
+            text: textContent,
+            // Determine if the message sender's ID matches the currently inferred user ID
+            isSender: details.from?.id === currentUserId 
+        };
     } catch (err) {
-      console.error("Error fetching conversations:", err.response?.data || err);
-      setError(err.response?.data?.error?.message || "Failed to fetch conversations.");
+        console.error(`Failed to fetch details for message ${messageId}:`, err);
+        return { id: messageId, text: "[Error loading message details]" };
     }
-  };
+  }, [accessToken, currentUserId]);
 
-  // ✅ Fetch messages in selected conversation
-  const fetchMessages = async (conversationId) => {
+
+  // 2. Fetch messages in a specific conversation (Uses Call 2 & Call 3)
+  const fetchMessages = useCallback(async (conversationId) => {
+    setSelectedConversation(conversationId);
+    setLoading(true);
+    setError(null);
+    setMessages([]);
+    
     try {
-      const res = await axios.get(`${BASE_URL}/${conversationId}`, {
-        params: { fields: "messages", access_token: accessToken },
-      });
-      setMessages(res.data.messages?.data || []);
-      setSelectedConversation(conversationId);
-      setTimeout(scrollToBottom, 100);
-      setError(null);
+        // --- API Call 2: Get basic message list from conversation edge ---
+        const msgListRes = await handleApiCall(
+            `${conversationId}/messages`,
+            { 
+                access_token: accessToken, 
+                fields: "id,created_time,is_unsupported,from,message",
+                limit: 25 
+            }
+        );
+
+        const basicMessages = msgListRes.data || [];
+        
+        // Infer the Current User ID from the first message's 'to' field if not set
+        if (!currentUserId && basicMessages.length > 0) {
+             const firstMessageDetails = await fetchMessageDetails(basicMessages[0].id);
+             const recipient = firstMessageDetails.to?.data?.[0];
+             if(recipient) {
+                 setCurrentUserId(recipient.id);
+             }
+        }
+        
+        // --- API Call 3 Loop: Fetch full details for each message (Necessary for complete metadata) ---
+        const detailedMessagesPromises = basicMessages.map(m => fetchMessageDetails(m.id));
+        const detailedMessages = await Promise.all(detailedMessagesPromises);
+        
+        const finalMessages = detailedMessages
+            // Reverse to show messages in chronological order (oldest first)
+            .reverse();
+
+        setMessages(finalMessages);
+        setTimeout(scrollToBottom, 100);
+
     } catch (err) {
-      console.error("Error fetching messages:", err.response?.data || err);
-      setError(err.response?.data?.error?.message || "Failed to fetch messages.");
+        setError(err.message || "Failed to fetch messages.");
+        setMessages([]);
+    } finally {
+        setLoading(false);
     }
-  };
+  }, [accessToken, currentUserId, fetchMessageDetails]);
 
-  // ✅ Send DM reply (requires comment_id if replying to a comment)
-  const sendMessage = async () => {
-    if (!dmReply.trim()) return alert("Message cannot be empty");
-    if (!selectedConversation) return alert("Select a conversation first");
+
+  // 1. Fetch DM conversations (API Call 1)
+  const fetchConversations = useCallback(async () => {
+    if (!accessToken) {
+      setError("Please enter a valid Access Token.");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    setConversations([]);
+    setSelectedConversation(null);
+    setMessages([]);
 
     try {
-      await axios.post(
-        `${BASE_URL}/${selectedConversation}/messages`,
-        {
-          message: { text: dmReply },
-        },
-        {
-          headers: { "Content-Type": "application/json" },
-          params: { access_token: accessToken },
+      const data = await handleApiCall(
+        `me/conversations`,
+        { 
+            access_token: accessToken,
+            platform: "instagram",
+            // The API requires 'participants' field to retrieve usernames/IDs
+            fields: "id,participants,snippet,updated_time" 
         }
       );
+      
+      setConversations(data.data || []);
 
-      setDmReply("");
-      fetchMessages(selectedConversation); // refresh
-      setError(null);
     } catch (err) {
-      console.error("Error sending message:", err.response?.data || err);
-      setError(err.response?.data?.error?.message || "Failed to send message.");
+      setError(err.message || "Failed to fetch conversations.");
+    } finally {
+      setLoading(false);
     }
+  }, [accessToken]);
+
+
+  useEffect(() => {
+    // Automatically fetch conversations if a token is present and submitted
+    if (isTokenEntered && conversations.length === 0) {
+      fetchConversations();
+    }
+  }, [isTokenEntered, fetchConversations, conversations.length]);
+
+
+  const handleTokenSubmit = (e) => {
+      e.preventDefault();
+      // Reset state and flag that a token has been submitted
+      setConversations([]);
+      setSelectedConversation(null);
+      setMessages([]);
+      setCurrentUserId(null);
+      setError(null);
+      setIsTokenEntered(true);
   };
+  
+  const isReady = isTokenEntered && conversations.length > 0;
+
+  const getParticipantName = (conversation) => {
+    // Find the participant that IS NOT the current user
+    const otherParticipant = conversation.participants?.data.find(p => p.id !== currentUserId);
+    return otherParticipant?.username || "Direct Message";
+  };
+  
+  const ErrorBanner = ({ message }) => (
+    <div className="p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg mb-4 shadow-sm" role="alert">
+      <p className="font-bold">Error:</p>
+      <p>{message}</p>
+    </div>
+  );
+
+  const LoadingIndicator = () => (
+    <div className="flex justify-center items-center py-4">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+    </div>
+  );
+
 
   return (
-    <main className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6">Instagram DMs (Direct via Graph API)</h1>
+    <main className="min-h-screen bg-gray-50 p-4 sm:p-6 font-sans">
+      <div className="max-w-7xl mx-auto">
+        <h1 className="text-3xl font-extrabold text-gray-800 mb-6 border-b pb-2">
+          Instagram DM Viewer (3-API Flow) 🚀
+        </h1>
+        
+        {/* Access Token Input */}
+        <div className="bg-white p-6 rounded-xl shadow-lg mb-6 border-t-4 border-gray-400">
+            <form onSubmit={handleTokenSubmit}>
+                <label htmlFor="accessToken" className="block text-sm font-medium text-gray-700 mb-2">
+                    Instagram Access Token (IGA...)
+                </label>
+                <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
+                    <input
+                        id="accessToken"
+                        type="password"
+                        placeholder="Paste your IGA... token here"
+                        value={userToken}
+                        onChange={(e) => setUserToken(e.target.value)}
+                        className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 outline-none transition duration-150"
+                    />
+                    <button
+                        type="submit"
+                        className="bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition duration-200"
+                        disabled={loading || !userToken.trim()}
+                    >
+                        {loading ? 'Connecting...' : 'Connect & Fetch Conversations (API Call 1)'}
+                    </button>
+                </div>
+            </form>
+            {error && <ErrorBanner message={error} />}
+        </div>
+        
+        {/* Status */}
+        <div className="text-sm text-gray-600 mb-6 p-3 bg-white rounded-lg shadow-md">
+            **Current User ID (Inferred):** <span className="font-mono text-blue-700 break-all">{currentUserId || 'N/A (Set after viewing first message)'}</span>
+        </div>
 
-        {error && <p className="text-red-500 mb-4">{error}</p>}
-
-        <button
-          onClick={fetchConversations}
-          className="mb-6 bg-blue-600 text-white px-5 py-2 rounded hover:bg-blue-700"
-        >
-          Load Conversations
-        </button>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Conversations */}
-          <div className="bg-white p-4 rounded-xl shadow space-y-2 max-h-[70vh] overflow-y-auto">
-            <h2 className="text-xl font-semibold mb-3">Conversations</h2>
-            {conversations.length === 0 ? (
-              <p className="text-gray-500">No conversations found.</p>
+        
+        {/* Main Application Interface */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Conversations List */}
+          <div className="lg:col-span-1 bg-white p-4 rounded-xl shadow-2xl space-y-2 max-h-[80vh] overflow-y-auto border-t-4 border-blue-600">
+            <h2 className="text-xl font-bold text-gray-800 mb-3">
+                Conversations ({conversations.length})
+            </h2>
+            {loading && <LoadingIndicator />}
+            {!isReady && !loading && isTokenEntered && conversations.length === 0 ? (
+                <p className="text-gray-500 p-2">Fetching conversations using API Call 1...</p>
             ) : (
-              conversations.map((conv) => (
+              conversations.map((c) => (
                 <div
-                  key={conv.id}
-                  onClick={() => fetchMessages(conv.id)}
-                  className={`cursor-pointer p-3 border rounded hover:bg-gray-50 ${
-                    selectedConversation === conv.id ? "border-blue-500 bg-blue-50" : ""
+                  key={c.id}
+                  // Clicking this triggers API Call 2 and Call 3
+                  onClick={() => fetchMessages(c.id)}
+                  className={`cursor-pointer p-4 border rounded-xl transition duration-150 hover:shadow-md ${
+                    selectedConversation === c.id
+                      ? "border-blue-500 bg-blue-100 shadow-inner"
+                      : "border-gray-200 hover:bg-gray-50"
                   }`}
                 >
-                  <p className="font-semibold">Conversation ID:</p>
-                  <p className="text-sm break-all text-gray-600">{conv.id}</p>
-                  <p className="text-xs text-gray-400">
-                    Updated: {new Date(conv.updated_time).toLocaleString()}
+                  <p className="font-semibold text-gray-800 truncate">
+                    {getParticipantName(c)}
+                  </p>
+                  <p className="text-gray-500 text-xs italic">
+                    Updated: {c.updated_time ? new Date(c.updated_time).toLocaleString() : 'No time'}
+                  </p>
+                  <p className="text-gray-500 text-sm italic truncate">
+                    Snippet: {c.snippet || "N/A"}
                   </p>
                 </div>
               ))
             )}
           </div>
 
-          {/* Messages */}
-          {selectedConversation && (
-            <div className="bg-white p-4 rounded-xl shadow flex flex-col max-h-[70vh]">
-              <h2 className="text-xl font-semibold mb-4">Messages</h2>
-              <div className="flex-1 overflow-y-auto space-y-2">
-                {messages.length === 0 ? (
-                  <p className="text-gray-500">No messages yet.</p>
+          {/* Messages Panel */}
+          <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-2xl flex flex-col max-h-[80vh] border-t-4 border-blue-600">
+            <h2 className="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">
+                {selectedConversation 
+                    ? `Messages with ${getParticipantName(conversations.find(c => c.id === selectedConversation) || {})}`
+                    : "Select a conversation"
+                }
+            </h2>
+            <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
+                {loading && selectedConversation && <LoadingIndicator />}
+                {!selectedConversation ? (
+                    <p className="text-gray-500 text-center py-10">Select a conversation from the list to view its messages.</p>
                 ) : (
-                  messages.map((msg) => (
-                    <div
-                      key={msg.id}
-                      className={`p-3 rounded-xl max-w-[80%] break-words ${
-                        msg.is_unsupported ? "bg-gray-200 text-gray-500" : "bg-blue-100"
-                      }`}
-                    >
-                      <p className="text-sm">{msg.message || "Media or unsupported content"}</p>
-                      <p className="text-xs text-gray-400 mt-1">
-                        {new Date(msg.created_time).toLocaleString()}
-                      </p>
-                    </div>
-                  ))
+                    !loading && messages.length === 0 ? (
+                        <p className="text-gray-500 text-center py-10">No messages found or failed to load. (Used API Call 2 & 3)</p>
+                    ) : (
+                        messages.map((m) => (
+                            <div
+                                key={m.id}
+                                className={`flex ${
+                                    m.isSender ? "justify-end" : "justify-start"
+                                }`}
+                            >
+                                <div
+                                    className={`p-3 rounded-2xl max-w-[90%] sm:max-w-[70%] break-words shadow-md transition-all duration-300 ${
+                                        m.isSender
+                                            ? "bg-blue-600 text-white rounded-br-none"
+                                            : "bg-gray-200 text-gray-800 rounded-tl-none"
+                                    }`}
+                                >
+                                    <p className="text-xs font-semibold mb-1 opacity-75">
+                                        {m.isSender ? `You (${m.from?.username || m.from?.id})` : `${m.from?.username || m.from?.id}`}
+                                    </p>
+                                    <p className="text-base leading-snug whitespace-pre-wrap">{m.text}</p>
+                                    <p className={`text-xs mt-1 ${m.isSender ? "text-blue-200" : "text-gray-500"}`}>
+                                        {new Date(m.created_time).toLocaleTimeString()}
+                                    </p>
+                                </div>
+                            </div>
+                        ))
+                    )
                 )}
-                <div ref={messagesEndRef} />
-              </div>
-
-              <div className="flex space-x-2 mt-2">
-                <input
-                  type="text"
-                  placeholder="Type a message..."
-                  value={dmReply}
-                  onChange={(e) => setDmReply(e.target.value)}
-                  className="flex-1 p-3 border rounded-xl focus:ring-2 focus:ring-blue-400 outline-none"
-                  onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-                />
-                <button
-                  onClick={sendMessage}
-                  className="bg-blue-600 text-white px-5 py-2 rounded-xl hover:bg-blue-700"
-                >
-                  Send
-                </button>
-              </div>
+              <div ref={messagesEndRef} />
             </div>
-          )}
+          </div>
         </div>
       </div>
+      <style>{`
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #999; }
+      `}</style>
     </main>
   );
 }
