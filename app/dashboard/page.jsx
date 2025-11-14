@@ -22,6 +22,9 @@ export default function Dashboard() {
     const [insights, setInsights] = useState([]);
     const [replyText, setReplyText] = useState({});
     const [pageAccessToken, setPageAccessToken] = useState(null);
+    const [facebookPageId, setFacebookPageId] = useState(null)
+    const [pageRating, setPageRating] = useState(null);
+    const [pageRatingsList, setPageRatingsList] = useState([]);
     const router = useRouter()
 
     const accessToken = session?.accessToken;
@@ -49,6 +52,7 @@ export default function Dashboard() {
                     // Get first page's token (or add UI to select)
                     const page = res.data.data[0];
                     setPageAccessToken(page.access_token);
+                    setFacebookPageId(page.id)
                     console.log("✅ Page Access Token:", page.access_token);
                 } else {
                     console.error("⚠️ No connected pages found.");
@@ -119,6 +123,55 @@ export default function Dashboard() {
 
         fetchData();
     }, [instagramBusinessId, accessToken]);
+
+    // Fetch Rating and Review
+    useEffect(() => {
+        if (!pageAccessToken) return;
+
+        const fetchPageRating = async () => {
+            try {
+                // Fetch Overall Rating + Rating Count
+                const ratingRes = await axios.get(
+                    `https://graph.facebook.com/v21.0/me/accounts`,
+                    { params: { access_token: session.accessToken } }
+                );
+
+                const page = ratingRes.data?.data?.[0];
+                if (!page) return;
+
+                const detailsRes = await axios.get(
+                    `https://graph.facebook.com/v21.0/${page.id}`,
+                    {
+                        params: {
+                            fields: "overall_star_rating,rating_count",
+                            access_token: pageAccessToken
+                        }
+                    }
+                );
+
+                setPageRating(detailsRes.data);
+
+                // Fetch list of user reviews
+                const reviewRes = await axios.get(
+                    `https://graph.facebook.com/v21.0/${page.id}/ratings`,
+                    {
+                        params: {
+                            fields: "reviewer{name,picture},review_text,rating,created_time",
+                            access_token: pageAccessToken
+                        }
+                    }
+                );
+
+                setPageRatingsList(reviewRes.data.data || []);
+
+            } catch (err) {
+                console.error("❌ Error fetching Page Rating/Reviews:", err.response?.data || err);
+            }
+        };
+
+        fetchPageRating();
+    }, [pageAccessToken]);
+
 
     // Fetch comments including replies
     const fetchComments = async (postId) => {
@@ -464,6 +517,59 @@ export default function Dashboard() {
                         {loading ? "Publishing..." : "Publish Post"}
                     </button>
                 </div>
+
+                {/* ⭐ Facebook Page Ratings Section */}
+                {pageRating && (
+                    <div className="w-full md:w-1/2 bg-white p-6 rounded-xl shadow-md max-h-[400px] overflow-y-auto">
+                        <h2 className="text-xl font-semibold mb-3">Facebook Page Rating</h2>
+
+                        <div className="mb-4">
+                            <p className="text-3xl font-bold text-yellow-500">
+                                ⭐ {pageRating.overall_star_rating || 0}
+                            </p>
+                            <p className="text-gray-600">
+                                {pageRating.rating_count} total ratings
+                            </p>
+                        </div>
+
+                        <h3 className="font-semibold mt-4 mb-2">Latest Reviews</h3>
+
+                        {pageRatingsList.length === 0 ? (
+                            <p className="text-gray-500">No reviews available.</p>
+                        ) : (
+                            <div className="space-y-3">
+                                {pageRatingsList.map((r) => (
+                                    <div
+                                        key={r.id}
+                                        className="p-3 bg-gray-50 rounded-lg shadow-sm"
+                                    >
+                                        <div className="flex items-center space-x-3">
+                                            <img
+                                                src={r.reviewer?.picture?.data?.url}
+                                                className="w-10 h-10 rounded-full"
+                                            />
+                                            <div>
+                                                <p className="font-semibold">
+                                                    {r.reviewer?.name || "Anonymous"}
+                                                </p>
+                                                <p className="text-yellow-500 text-sm">
+                                                    {"⭐".repeat(r.rating)}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <p className="text-gray-700 mt-2">{r.review_text}</p>
+
+                                        <p className="text-xs text-gray-400 mt-1">
+                                            {new Date(r.created_time).toLocaleDateString()}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
+
 
                 {/* Media Gallery */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
