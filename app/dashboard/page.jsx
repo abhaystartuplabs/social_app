@@ -12,7 +12,6 @@ export default function Dashboard() {
     const [modalPost, setModalPost] = useState(null); // Track post for modal
     const [modalType, setModalType] = useState(null); // "comments" or "insights"
     const [comments, setComments] = useState([]);
-    const [reply, setReply] = useState("");
     const [caption, setCaption] = useState("");
     const [imageUrl, setImageUrl] = useState("");
     const [instagramBusinessId, setInstagramBusinessId] = useState(null);
@@ -30,6 +29,8 @@ export default function Dashboard() {
     const accessToken = session?.accessToken;
     console.log("pageAccessToken:-", pageAccessToken)
     console.log("replyText:-", replyText)
+    console.log("facebookPageId:-", facebookPageId)
+
 
     const timeAgo = (timestamp) => {
         const diff = (new Date() - new Date(timestamp)) / 1000;
@@ -520,7 +521,7 @@ export default function Dashboard() {
 
                 {/* ⭐ Facebook Page Ratings Section */}
                 {pageRating && (
-                    <div className="w-full md:w-1/2 bg-white p-6 rounded-xl shadow-md max-h-[400px] overflow-y-auto">
+                    <div className="w-full md:w-1/2 mb-4 bg-white p-6 rounded-xl shadow-md max-h-[400px] overflow-y-auto">
                         <h2 className="text-xl font-semibold mb-3">Facebook Page Rating</h2>
 
                         <div className="mb-4">
@@ -569,7 +570,6 @@ export default function Dashboard() {
                         )}
                     </div>
                 )}
-
 
                 {/* Media Gallery */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
