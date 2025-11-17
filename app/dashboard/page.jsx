@@ -430,6 +430,29 @@ export default function Dashboard() {
                             <span className="font-medium text-center">Facebook DM's</span>
                         </button>
 
+                        {/* Instagram Post Schedule DM Button */}
+                        <button
+                            onClick={() => router.push('/dashboard/scheduler')}
+                            className="flex-1 bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 py-3 rounded-xl shadow-lg hover:shadow-xl 
+                 transform hover:-translate-y-1 transition-all duration-300 flex items-center justify-center space-x-2"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-5 w-5"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M7 8h10M7 12h4m1 8l-5-5H5a2 2 0 01-2-2V7a2 2 0 012-2h14a2 2 0 012 2v6a2 2 0 01-2 2h-3l-5 5z"
+                                />
+                            </svg>
+                            <span className="font-medium text-center">Schedule Post's</span>
+                        </button>
+
                         {/* Sign Out Button */}
                         <button
                             onClick={() => signOut()}
