@@ -7,11 +7,14 @@ import Link from "next/link";
 
 // Backend Base URL
 const API = 'https://backend-app-32ro.onrender.com';
-console.log("API is from ENV:-", process.env.NEXT_PUBLIC_BACKEND_URL)
-console.log("API is from Static:-", API)
 
-const timeUntil = (scheduleTime) => {
-    const diff = new Date(scheduleTime).getTime() - new Date().getTime();
+// -------------------------
+// Time calculation
+// -------------------------
+const timeUntil = (utcTime) => {
+    const scheduleDate = new Date(utcTime); // UTC stored in DB
+    const diff = scheduleDate.getTime() - new Date().getTime(); // local time now
+
     if (diff <= 0) return "Due now";
 
     const seconds = Math.floor(diff / 1000);
@@ -24,7 +27,6 @@ const timeUntil = (scheduleTime) => {
     if (minutes > 0) return `in ${minutes} minutes`;
     return `in ${seconds} seconds`;
 };
-
 
 export default function PostScheduler() {
     const { data: session, status } = useSession();
@@ -100,14 +102,14 @@ export default function PostScheduler() {
         setLoading(true);
 
         try {
-            // Convert local datetime to UTC before sending
-            const localTime = new Date(scheduleTime); // this is in local time
+            // Convert local time to UTC before sending to backend
+            const localTime = new Date(scheduleTime);
             const utcTime = new Date(localTime.getTime() - localTime.getTimezoneOffset() * 60000);
 
             await axios.post(`${API}/api/schedule/createPost`, {
                 imageUrl,
                 caption,
-                scheduleTime: utcTime.toISOString(), // store in UTC
+                scheduleTime: utcTime.toISOString(),
                 instagramBusinessId,
                 accessToken
             });
@@ -116,7 +118,6 @@ export default function PostScheduler() {
             setImageUrl("");
             setCaption("");
             setScheduleTime("");
-
             fetchScheduledPosts();
         } catch (err) {
             console.error(err);
@@ -125,7 +126,6 @@ export default function PostScheduler() {
             setLoading(false);
         }
     };
-
 
     // -------------------------
     // PUBLISH NOW
@@ -263,18 +263,23 @@ export default function PostScheduler() {
                             <div>
                                 <p className="font-bold text-sm">{post.caption}</p>
                                 <p className="text-xs text-gray-500">
-                                    {new Date(post.scheduleTime).toLocaleString("en-IN", {timeZone: "Asia/Kolkata" }) }                               </p>
+                                    {/* Show schedule time in IST */}
+                                    {new Date(post.scheduleTime).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}
+                                </p>
+                                {/* Status badge */}
                                 <span
-                                    className={`px-2 py-1 text-xs font-semibold rounded-full ${post.status === 'PUBLISHED'
-                                        ? 'bg-green-100 text-green-800'
-                                        : post.status === 'FAILED'
-                                            ? 'bg-red-100 text-red-800'
-                                            : 'bg-blue-100 text-blue-800'
+                                    className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                                        post.status === 'PUBLISHED'
+                                            ? 'bg-green-100 text-green-800'
+                                            : post.status === 'FAILED'
+                                                ? 'bg-red-100 text-red-800'
+                                                : 'bg-blue-100 text-blue-800'
                                         }`}
                                 >
                                     {post.status}
                                 </span>
-                                {post.status === "SCHEDULED" && (
+                                {/* Remaining time */}
+                                {post.status === "PENDING" && (
                                     <p className="text-xs text-blue-600">
                                         {timeUntil(post.scheduleTime)}
                                     </p>
@@ -283,7 +288,7 @@ export default function PostScheduler() {
                         </div>
 
                         <div className="flex space-x-3">
-                            {post.status === "SCHEDULED" && (
+                            {post.status === "PENDING" && (
                                 <button
                                     onClick={() => handlePublishNow(post)}
                                     className="bg-green-500 text-white px-3 py-2 rounded"
