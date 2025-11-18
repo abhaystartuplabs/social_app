@@ -7,7 +7,7 @@ import Link from "next/link";
 
 // Backend Base URL
 const API = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend-app-32ro.onrender.com';
-console.log("API:-",API)
+console.log("API is:-",API)
 const timeUntil = (scheduleTime) => {
     const diff = new Date(scheduleTime) - new Date();
     if (diff <= 0) return "Due now";
