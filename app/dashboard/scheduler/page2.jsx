@@ -67,7 +67,7 @@ export default function PostScheduler() {
         if (!accessToken) return;
         try {
             const res = await axios.get("/api/schedule");
-            console.log("res to fetch scheduled post:-",res)
+            console.log("res to fetch scheduled post:-", res)
             setScheduledPosts(res.data.posts || []);
         } catch (err) {
             console.error("Error fetching scheduled posts:", err);
@@ -171,7 +171,7 @@ export default function PostScheduler() {
                 </div>
 
                 {error && <div className="bg-red-100 text-red-700 p-4 rounded-lg mb-6">{error}</div>}
-                
+
                 {/* Scheduling Form */}
                 <div className="bg-white p-6 rounded-xl shadow-lg mb-8 border border-blue-200">
                     <h2 className="text-xl font-semibold mb-4 text-blue-700">Schedule New Post</h2>
@@ -213,7 +213,7 @@ export default function PostScheduler() {
 
                 {/* Scheduled Posts List */}
                 <h2 className="text-2xl font-bold mb-4 text-gray-800">Scheduled Posts ({scheduledPosts.length})</h2>
-                
+
                 {scheduledPosts.length === 0 ? (
                     <p className="p-6 bg-yellow-100 border border-yellow-300 rounded-xl text-center text-yellow-800">
                         No posts currently scheduled. Start scheduling above!
@@ -230,7 +230,7 @@ export default function PostScheduler() {
                             >
                                 {/* Image and Info */}
                                 <div className="flex-shrink-0 w-full md:w-1/4 flex space-x-3 items-center">
-                                    <img 
+                                    <img
                                         src={post.imageUrl}
                                         alt="Post Preview"
                                         className="w-16 h-16 object-cover rounded-lg"
@@ -241,19 +241,18 @@ export default function PostScheduler() {
                                         <p className="text-xs text-gray-500">{new Date(post.scheduleTime).toLocaleString()}</p>
                                     </div>
                                 </div>
-                                
+
                                 {/* Status and Time */}
                                 <div className="flex-1">
-                                    <span 
-                                        className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                                            post.status === 'PUBLISHED' ? 'bg-green-100 text-green-800' :
-                                            post.status === 'FAILED' ? 'bg-red-100 text-red-800' :
-                                            'bg-blue-100 text-blue-800'
-                                        }`}
+                                    <span
+                                        className={`px-3 py-1 text-xs font-semibold rounded-full ${post.status === 'PUBLISHED' ? 'bg-green-100 text-green-800' :
+                                                post.status === 'FAILED' ? 'bg-red-100 text-red-800' :
+                                                    'bg-blue-100 text-blue-800'
+                                            }`}
                                     >
                                         {post.status}
                                     </span>
-                                    {post.status === 'SCHEDULED' && (
+                                    {post.status === 'PENDING' && (
                                         <p className="text-sm text-gray-600 mt-1">
                                             {timeUntil(post.scheduleTime)}
                                         </p>
@@ -262,7 +261,7 @@ export default function PostScheduler() {
 
                                 {/* Actions */}
                                 <div className="flex space-x-3 flex-shrink-0">
-                                    {post.status === 'SCHEDULED' && (
+                                    {post.status === 'PENDING' && (
                                         <button
                                             onClick={() => handlePublishNow(post)}
                                             disabled={loading}
@@ -271,7 +270,7 @@ export default function PostScheduler() {
                                             {loading ? "Publishing..." : "Publish Now"}
                                         </button>
                                     )}
-                                    
+
                                     {post.status !== 'PUBLISHED' && (
                                         <button
                                             onClick={() => handleDeletePost(post.id)}
