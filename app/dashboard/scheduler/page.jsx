@@ -6,7 +6,7 @@ import axios from "axios";
 import Link from "next/link";
 
 // Backend Base URL
-const API = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend-app-nu-ebon.vercel.app';
+const API = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend-app-32ro.onrender.com';
 console.log("API:-",API)
 const timeUntil = (scheduleTime) => {
     const diff = new Date(scheduleTime) - new Date();
