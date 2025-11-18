@@ -163,28 +163,45 @@ export default function PostScheduler() {
                 </div>
 
                 <h2 className="text-2xl font-bold mb-4">Scheduled Posts ({scheduledPosts.length})</h2>
-                {scheduledPosts.map((post) => (
-                    <div key={post._id} className="bg-white p-4 rounded-xl shadow flex justify-between items-center mb-3">
-                        <div className="flex items-center space-x-3">
-                            <img src={post.imageUrl} className="w-16 h-16 rounded object-cover" />
-                            <div>
-                                <p className="font-bold text-sm">{post.caption}</p>
-                                <p className="text-xs text-gray-500">
-                                    {new Date(post.scheduleTime).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}
-                                </p>
-                                <span className={`px-2 py-1 text-xs font-semibold rounded-full ${post.status === 'PUBLISHED' ? 'bg-green-100 text-green-800' : post.status === 'FAILED' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}`}>
-                                    {post.status}
-                                </span>
-                                {post.status === "PENDING" && <p className="text-xs text-blue-600">{timeUntil(post.scheduleTime)}</p>}
+                {[...scheduledPosts]
+                    .sort((a, b) => {
+                        // Pending posts first
+                        if (a.status === "PENDING" && b.status !== "PENDING") return -1;
+                        if (a.status !== "PENDING" && b.status === "PENDING") return 1;
+
+                        // Then by scheduleTime ascending
+                        return new Date(a.scheduleTime) - new Date(b.scheduleTime);
+                    })
+                    .map((post) => (
+                        <div key={post._id} className="bg-white p-4 rounded-xl shadow flex justify-between items-center mb-3">
+                            <div className="flex items-center space-x-3">
+                                <img src={post.imageUrl} className="w-16 h-16 rounded object-cover" />
+                                <div>
+                                    <p className="font-bold text-sm">{post.caption}</p>
+                                    <p className="text-xs text-gray-500">
+                                        {new Date(post.scheduleTime).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}
+                                    </p>
+                                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${post.status === 'PUBLISHED' ? 'bg-green-100 text-green-800' :
+                                            post.status === 'FAILED' ? 'bg-red-100 text-red-800' :
+                                                'bg-blue-100 text-blue-800'
+                                        }`}>
+                                        {post.status}
+                                    </span>
+                                    {post.status === "PENDING" && <p className="text-xs text-blue-600">{timeUntil(post.scheduleTime)}</p>}
+                                </div>
+                            </div>
+
+                            <div className="flex space-x-3">
+                                {post.status === "PENDING" && (
+                                    <button onClick={() => handlePublishNow(post)} className="bg-green-500 text-white px-3 py-2 rounded">
+                                        Publish Now
+                                    </button>
+                                )}
+                                <button onClick={() => handleDeletePost(post._id)} className="bg-red-500 text-white px-3 py-2 rounded">Delete</button>
                             </div>
                         </div>
+                    ))}
 
-                        <div className="flex space-x-3">
-                            {post.status === "PENDING" && <button onClick={() => handlePublishNow(post)} className="bg-green-500 text-white px-3 py-2 rounded">Publish Now</button>}
-                            <button onClick={() => handleDeletePost(post._id)} className="bg-red-500 text-white px-3 py-2 rounded">Delete</button>
-                        </div>
-                    </div>
-                ))}
             </div>
         </main>
     );
