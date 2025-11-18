@@ -6,8 +6,7 @@ import axios from "axios";
 import Link from "next/link";
 
 // Backend Base URL
-const API = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend-app-nu-ebon.vercel.app/';
-console.log("API:-",API)
+const API = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend-app-nu-ebon.vercel.app/api/schedule';
 
 const timeUntil = (scheduleTime) => {
     const diff = new Date(scheduleTime) - new Date();
@@ -75,7 +74,7 @@ export default function PostScheduler() {
     // -------------------------
     const fetchScheduledPosts = useCallback(async () => {
         try {
-            const res = await axios.get(`${API}/schedule`);
+            const res = await axios.get(`${API}/getPosts`);
             setScheduledPosts(res.data.posts || []);
         } catch (err) {
             console.error(err);
@@ -98,10 +97,12 @@ export default function PostScheduler() {
         setLoading(true);
 
         try {
-            await axios.post(`${API}/schedule/create`, {
+            await axios.post(`${API}/createPost`, {
                 imageUrl,
                 caption,
                 scheduleTime,
+                instagramBusinessId,
+                accessToken
             });
 
             alert("Post scheduled!");
@@ -127,7 +128,7 @@ export default function PostScheduler() {
         setLoading(true);
 
         try {
-            const res = await axios.patch(`${API}/schedule/publish-now`, {
+            const res = await axios.patch(`${API}/publishNow`, {
                 postId: post._id,
                 instagramBusinessId,
                 accessToken,
@@ -156,10 +157,7 @@ export default function PostScheduler() {
         if (!confirm("Delete this scheduled post?")) return;
 
         try {
-            await axios.delete(`${API}/schedule/delete`, {
-                data: { postId },
-            });
-
+            await axios.delete(`${API}/deletePost`, { data: { postId } });
             alert("Deleted.");
             fetchScheduledPosts();
         } catch (err) {
@@ -183,7 +181,6 @@ export default function PostScheduler() {
     return (
         <main className="min-h-screen bg-gray-50 p-6">
             <div className="max-w-5xl mx-auto">
-
                 {/* HEADER */}
                 <div className="flex justify-between mb-8">
                     <h1 className="text-3xl font-bold">Post Scheduler</h1>
