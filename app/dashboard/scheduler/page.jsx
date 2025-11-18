@@ -11,7 +11,7 @@ console.log("API is from ENV:-", process.env.NEXT_PUBLIC_BACKEND_URL)
 console.log("API is from Static:-", API)
 
 const timeUntil = (scheduleTime) => {
-    const diff = new Date(scheduleTime) - new Date();
+    const diff = new Date(scheduleTime).getTime() - new Date().getTime();
     if (diff <= 0) return "Due now";
 
     const seconds = Math.floor(diff / 1000);
@@ -24,6 +24,7 @@ const timeUntil = (scheduleTime) => {
     if (minutes > 0) return `in ${minutes} minutes`;
     return `in ${seconds} seconds`;
 };
+
 
 export default function PostScheduler() {
     const { data: session, status } = useSession();
@@ -99,10 +100,14 @@ export default function PostScheduler() {
         setLoading(true);
 
         try {
+            // Convert local time (IST) to UTC before sending to backend
+            const localDate = new Date(scheduleTime);
+            const utcDate = new Date(localDate.getTime() - localDate.getTimezoneOffset() * 60000);
+
             await axios.post(`${API}/api/schedule/createPost`, {
                 imageUrl,
                 caption,
-                scheduleTime,
+                scheduleTime: utcDate.toISOString(),
                 instagramBusinessId,
                 accessToken
             });
@@ -120,6 +125,7 @@ export default function PostScheduler() {
             setLoading(false);
         }
     };
+
 
     // -------------------------
     // PUBLISH NOW
@@ -257,8 +263,18 @@ export default function PostScheduler() {
                             <div>
                                 <p className="font-bold text-sm">{post.caption}</p>
                                 <p className="text-xs text-gray-500">
-                                    {new Date(post.scheduleTime).toLocaleString()}
+                                    {new Date(post.scheduleTime).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}
                                 </p>
+                                <span
+                                    className={`px-2 py-1 text-xs font-semibold rounded-full ${post.status === 'PUBLISHED'
+                                            ? 'bg-green-100 text-green-800'
+                                            : post.status === 'FAILED'
+                                                ? 'bg-red-100 text-red-800'
+                                                : 'bg-blue-100 text-blue-800'
+                                        }`}
+                                >
+                                    {post.status}
+                                </span>
                                 {post.status === "SCHEDULED" && (
                                     <p className="text-xs text-blue-600">
                                         {timeUntil(post.scheduleTime)}
