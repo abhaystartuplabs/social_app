@@ -5,18 +5,15 @@ import { useSession, signOut } from "next-auth/react";
 import axios from "axios";
 import Link from "next/link";
 
-// Backend Base URL
-const API = 'https://backend-app-32ro.onrender.com';
+// Backend URL
+const API = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend-app-32ro.onrender.com';
 
-// -------------------------
-// Time calculation
-// -------------------------
+// Calculate remaining time
 const timeUntil = (utcTime) => {
-    const scheduleDate = new Date(utcTime); // UTC stored in DB
-    const diff = scheduleDate.getTime() - new Date().getTime(); // local time now
+    const scheduleDate = new Date(utcTime);
+    const diff = scheduleDate.getTime() - new Date().getTime();
 
     if (diff <= 0) return "Due now";
-
     const seconds = Math.floor(diff / 1000);
     const minutes = Math.floor(seconds / 60);
     const hours = Math.floor(minutes / 60);
@@ -40,9 +37,7 @@ export default function PostScheduler() {
 
     const accessToken = session?.accessToken;
 
-    // -------------------------
-    // FETCH IG BUSINESS ID
-    // -------------------------
+    // Fetch IG Business ID
     useEffect(() => {
         if (!accessToken || status !== "authenticated") return;
 
@@ -52,21 +47,17 @@ export default function PostScheduler() {
                     "https://graph.facebook.com/v21.0/me/accounts",
                     { params: { access_token: accessToken } }
                 );
-
                 const page = pagesRes.data.data?.[0];
                 if (!page) throw new Error("No connected Facebook Page found.");
-
                 const igRes = await axios.get(
                     `https://graph.facebook.com/v21.0/${page.id}`,
                     { params: { fields: "instagram_business_account", access_token: accessToken } }
                 );
-
                 const igId = igRes.data.instagram_business_account?.id;
                 if (!igId) throw new Error("No linked Instagram Business Account found.");
-
                 setInstagramBusinessId(igId);
             } catch (err) {
-                console.log(err);
+                console.error(err);
                 setError("Failed to fetch IG Business ID");
             }
         };
@@ -74,9 +65,7 @@ export default function PostScheduler() {
         fetchAccount();
     }, [accessToken, status]);
 
-    // -------------------------
-    // FETCH SCHEDULED POSTS
-    // -------------------------
+    // Fetch scheduled posts
     const fetchScheduledPosts = useCallback(async () => {
         try {
             const res = await axios.get(`${API}/api/schedule/getPosts`);
@@ -87,22 +76,14 @@ export default function PostScheduler() {
         }
     }, []);
 
-    useEffect(() => {
-        fetchScheduledPosts();
-    }, [fetchScheduledPosts]);
+    useEffect(() => { fetchScheduledPosts(); }, [fetchScheduledPosts]);
 
-    // -------------------------
-    // CREATE SCHEDULED POST
-    // -------------------------
+    // Schedule post
     const handleSchedulePost = async (e) => {
         e.preventDefault();
-
         if (!imageUrl || !scheduleTime) return alert("Image URL & schedule time are required.");
-
         setLoading(true);
-
         try {
-            // Convert local time to UTC before sending to backend
             const localTime = new Date(scheduleTime);
             const utcTime = new Date(localTime.getTime() - localTime.getTimezoneOffset() * 60000);
 
@@ -122,19 +103,13 @@ export default function PostScheduler() {
         } catch (err) {
             console.error(err);
             setError("Failed to schedule post");
-        } finally {
-            setLoading(false);
-        }
+        } finally { setLoading(false); }
     };
 
-    // -------------------------
-    // PUBLISH NOW
-    // -------------------------
+    // Publish now
     const handlePublishNow = async (post) => {
         if (!confirm("Publish this post now?")) return;
-
         setLoading(true);
-
         try {
             const res = await axios.patch(`${API}/api/schedule/publishNow`, {
                 postId: post._id,
@@ -143,27 +118,17 @@ export default function PostScheduler() {
                 imageUrl: post.imageUrl,
                 caption: post.caption,
             });
-
-            if (res.data.success) {
-                alert("Published successfully!");
-                fetchScheduledPosts();
-            } else {
-                alert(res.data.message);
-            }
+            if (res.data.success) { alert("Published successfully!"); fetchScheduledPosts(); }
+            else alert(res.data.message);
         } catch (err) {
             console.error(err);
             setError("Failed to publish post.");
-        } finally {
-            setLoading(false);
-        }
+        } finally { setLoading(false); }
     };
 
-    // -------------------------
-    // DELETE POST
-    // -------------------------
+    // Delete post
     const handleDeletePost = async (postId) => {
         if (!confirm("Delete this scheduled post?")) return;
-
         try {
             await axios.delete(`${API}/api/schedule/deletePost`, { data: { postId } });
             alert("Deleted.");
@@ -174,135 +139,49 @@ export default function PostScheduler() {
         }
     };
 
-    // -------------------------
-
-    if (status === "loading")
-        return <p className="text-center p-6">Loading session...</p>;
-
-    if (!session)
-        return (
-            <p className="text-center p-6">
-                <Link href="/login" className="text-blue-600 underline">Please Login</Link>
-            </p>
-        );
+    if (status === "loading") return <p className="text-center p-6">Loading session...</p>;
+    if (!session) return <p className="text-center p-6"><Link href="/login" className="text-blue-600 underline">Please Login</Link></p>;
 
     return (
         <main className="min-h-screen bg-gray-50 p-6">
             <div className="max-w-5xl mx-auto">
-                {/* HEADER */}
                 <div className="flex justify-between mb-8">
                     <h1 className="text-3xl font-bold">Post Scheduler</h1>
-                    <button
-                        onClick={() => signOut()}
-                        className="bg-red-500 px-4 py-2 text-white rounded-lg"
-                    >
-                        Sign Out
-                    </button>
+                    <button onClick={() => signOut()} className="bg-red-500 px-4 py-2 text-white rounded-lg">Sign Out</button>
                 </div>
 
-                {error && (
-                    <div className="bg-red-100 text-red-700 p-4 rounded mb-4">
-                        {error}
-                    </div>
-                )}
+                {error && <div className="bg-red-100 text-red-700 p-4 rounded mb-4">{error}</div>}
 
-                {/* CREATE POST */}
                 <div className="bg-white p-6 rounded-xl shadow mb-8">
                     <h2 className="text-xl font-semibold mb-4">Schedule New Post</h2>
-
                     <form className="space-y-4" onSubmit={handleSchedulePost}>
-                        <input
-                            type="url"
-                            placeholder="Image URL"
-                            className="w-full border p-3 rounded"
-                            value={imageUrl}
-                            onChange={(e) => setImageUrl(e.target.value)}
-                            required
-                        />
-
-                        <textarea
-                            placeholder="Write caption..."
-                            className="w-full border p-3 rounded min-h-[100px]"
-                            value={caption}
-                            onChange={(e) => setCaption(e.target.value)}
-                        />
-
-                        <input
-                            type="datetime-local"
-                            className="w-full border p-3 rounded"
-                            value={scheduleTime}
-                            onChange={(e) => setScheduleTime(e.target.value)}
-                            required
-                        />
-
-                        <button
-                            type="submit"
-                            className="w-full bg-blue-600 text-white py-3 rounded-lg"
-                            disabled={loading}
-                        >
-                            {loading ? "Scheduling..." : "Schedule Post"}
-                        </button>
+                        <input type="url" placeholder="Image URL" className="w-full border p-3 rounded" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} required />
+                        <textarea placeholder="Write caption..." className="w-full border p-3 rounded min-h-[100px]" value={caption} onChange={(e) => setCaption(e.target.value)} />
+                        <input type="datetime-local" className="w-full border p-3 rounded" value={scheduleTime} onChange={(e) => setScheduleTime(e.target.value)} required />
+                        <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-lg" disabled={loading}>{loading ? "Scheduling..." : "Schedule Post"}</button>
                     </form>
                 </div>
 
-                {/* POST LIST */}
-                <h2 className="text-2xl font-bold mb-4">
-                    Scheduled Posts ({scheduledPosts.length})
-                </h2>
-
+                <h2 className="text-2xl font-bold mb-4">Scheduled Posts ({scheduledPosts.length})</h2>
                 {scheduledPosts.map((post) => (
-                    <div
-                        key={post._id}
-                        className="bg-white p-4 rounded-xl shadow flex justify-between items-center mb-3"
-                    >
+                    <div key={post._id} className="bg-white p-4 rounded-xl shadow flex justify-between items-center mb-3">
                         <div className="flex items-center space-x-3">
-                            <img
-                                src={post.imageUrl}
-                                className="w-16 h-16 rounded object-cover"
-                            />
+                            <img src={post.imageUrl} className="w-16 h-16 rounded object-cover" />
                             <div>
                                 <p className="font-bold text-sm">{post.caption}</p>
                                 <p className="text-xs text-gray-500">
-                                    {/* Show schedule time in IST */}
                                     {new Date(post.scheduleTime).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}
                                 </p>
-                                {/* Status badge */}
-                                <span
-                                    className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                                        post.status === 'PUBLISHED'
-                                            ? 'bg-green-100 text-green-800'
-                                            : post.status === 'FAILED'
-                                                ? 'bg-red-100 text-red-800'
-                                                : 'bg-blue-100 text-blue-800'
-                                        }`}
-                                >
+                                <span className={`px-2 py-1 text-xs font-semibold rounded-full ${post.status === 'PUBLISHED' ? 'bg-green-100 text-green-800' : post.status === 'FAILED' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}`}>
                                     {post.status}
                                 </span>
-                                {/* Remaining time */}
-                                {post.status === "PENDING" && (
-                                    <p className="text-xs text-blue-600">
-                                        {timeUntil(post.scheduleTime)}
-                                    </p>
-                                )}
+                                {post.status === "PENDING" && <p className="text-xs text-blue-600">{timeUntil(post.scheduleTime)}</p>}
                             </div>
                         </div>
 
                         <div className="flex space-x-3">
-                            {post.status === "PENDING" && (
-                                <button
-                                    onClick={() => handlePublishNow(post)}
-                                    className="bg-green-500 text-white px-3 py-2 rounded"
-                                >
-                                    Publish Now
-                                </button>
-                            )}
-
-                            <button
-                                onClick={() => handleDeletePost(post._id)}
-                                className="bg-red-500 text-white px-3 py-2 rounded"
-                            >
-                                Delete
-                            </button>
+                            {post.status === "PENDING" && <button onClick={() => handlePublishNow(post)} className="bg-green-500 text-white px-3 py-2 rounded">Publish Now</button>}
+                            <button onClick={() => handleDeletePost(post._id)} className="bg-red-500 text-white px-3 py-2 rounded">Delete</button>
                         </div>
                     </div>
                 ))}
