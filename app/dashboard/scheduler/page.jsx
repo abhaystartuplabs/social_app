@@ -100,14 +100,14 @@ export default function PostScheduler() {
         setLoading(true);
 
         try {
-            // Convert local time (IST) to UTC before sending to backend
-            const localDate = new Date(scheduleTime);
-            const utcDate = new Date(localDate.getTime() - localDate.getTimezoneOffset() * 60000);
+            // Convert local datetime to UTC before sending
+            const localTime = new Date(scheduleTime); // this is in local time
+            const utcTime = new Date(localTime.getTime() - localTime.getTimezoneOffset() * 60000);
 
             await axios.post(`${API}/api/schedule/createPost`, {
                 imageUrl,
                 caption,
-                scheduleTime: utcDate.toISOString(),
+                scheduleTime: utcTime.toISOString(), // store in UTC
                 instagramBusinessId,
                 accessToken
             });
@@ -263,14 +263,13 @@ export default function PostScheduler() {
                             <div>
                                 <p className="font-bold text-sm">{post.caption}</p>
                                 <p className="text-xs text-gray-500">
-                                    {new Date(post.scheduleTime).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}
-                                </p>
+                                    {new Date(post.scheduleTime).toLocaleString("en-IN", {timeZone: "Asia/Kolkata" }) }                               </p>
                                 <span
                                     className={`px-2 py-1 text-xs font-semibold rounded-full ${post.status === 'PUBLISHED'
-                                            ? 'bg-green-100 text-green-800'
-                                            : post.status === 'FAILED'
-                                                ? 'bg-red-100 text-red-800'
-                                                : 'bg-blue-100 text-blue-800'
+                                        ? 'bg-green-100 text-green-800'
+                                        : post.status === 'FAILED'
+                                            ? 'bg-red-100 text-red-800'
+                                            : 'bg-blue-100 text-blue-800'
                                         }`}
                                 >
                                     {post.status}
