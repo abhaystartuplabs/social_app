@@ -159,7 +159,7 @@ export default function PostScheduler() {
         if (!confirm("Delete this scheduled post?")) return;
 
         try {
-            await axios.delete(`${API}/deletePost`, { data: { postId } });
+            await axios.delete(`${API}/api/schedule/deletePost`, { data: { postId } });
             alert("Deleted.");
             fetchScheduledPosts();
         } catch (err) {
