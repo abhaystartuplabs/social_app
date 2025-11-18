@@ -6,8 +6,8 @@ import axios from "axios";
 import Link from "next/link";
 
 // Backend Base URL
-const API = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend-app-nu-ebon.vercel.app/api/schedule';
-
+const API = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend-app-nu-ebon.vercel.app';
+console.log("API:-",API)
 const timeUntil = (scheduleTime) => {
     const diff = new Date(scheduleTime) - new Date();
     if (diff <= 0) return "Due now";
@@ -74,7 +74,7 @@ export default function PostScheduler() {
     // -------------------------
     const fetchScheduledPosts = useCallback(async () => {
         try {
-            const res = await axios.get(`${API}/getPosts`);
+            const res = await axios.get(`${API}/api/schedule/getPosts`);
             setScheduledPosts(res.data.posts || []);
         } catch (err) {
             console.error(err);
@@ -97,7 +97,7 @@ export default function PostScheduler() {
         setLoading(true);
 
         try {
-            await axios.post(`${API}/createPost`, {
+            await axios.post(`${API}/api/schedule/createPost`, {
                 imageUrl,
                 caption,
                 scheduleTime,
@@ -128,7 +128,7 @@ export default function PostScheduler() {
         setLoading(true);
 
         try {
-            const res = await axios.patch(`${API}/publishNow`, {
+            const res = await axios.patch(`${API}/api/schedule/publishNow`, {
                 postId: post._id,
                 instagramBusinessId,
                 accessToken,
